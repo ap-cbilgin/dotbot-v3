@@ -17,7 +17,8 @@ dotbot is different. It wraps AI-assisted coding in a managed, transparent workf
 - **Operator steering** -- Guide the AI mid-session through a heartbeat/whisper system. Send corrections or pivot instructions without interrupting its flow.
 - **Zero-dependency tooling** -- The built-in MCP server and web UI are pure PowerShell. No npm, pip, or Docker required -- install and go.
 - **Designed for teams** -- The entire `.bot/` directory lives in your repo. Task queues, session histories, plans, and feedback are visible to everyone through git.
-- **Fully extensible** -- Hooks, verification scripts, agents, skills, and workflows can all be customised per-project. The MCP server and UI can be mutated inside any project to fit your tech stack and dev workflow. Tech-specific profiles (e.g. `dotnet`) overlay additional tooling on top of the base system.
+- **Fully extensible** -- Hooks, verification scripts, agents, skills, and workflows can all be customised per-project. The MCP server and UI can be mutated inside any project to fit your tech stack and dev workflow.
+- **Profile system** -- Two types of profiles compose on top of the `default` base. **Workflow** profiles (e.g. `multi-repo`) change how dotbot operates. **Stack** profiles (e.g. `dotnet`, `dotnet-blazor`) add tech-specific skills, hooks, and tools. Stacks can extend other stacks and are composable.
 
 ## Prerequisites
 
@@ -61,6 +62,28 @@ This creates a `.bot/` directory with:
 - Autonomous loop for Claude CLI
 - Agents, skills, and workflows
 
+#### Profiles
+
+Add profiles to customise dotbot for your workflow and tech stack:
+
+```powershell
+# Single stack
+dotbot init --profile dotnet
+
+# Workflow + stacks (comma-separated)
+dotbot init --profile multi-repo,dotnet-blazor,dotnet-ef
+
+# List available profiles
+dotbot profiles
+```
+
+Profiles come in two types:
+
+- **Workflow** (at most one) — Changes how dotbot operates. Example: `multi-repo` replaces the core analysis/execution workflows with a research-driven multi-repo pipeline.
+- **Stack** (composable) — Adds tech-specific skills, hooks, verify scripts, and MCP tools. Example: `dotnet`, `dotnet-blazor`, `dotnet-ef`. Stacks can declare `extends` to auto-include a parent (e.g. `dotnet-blazor` auto-includes `dotnet`).
+
+Apply order: `default` → workflow (if any) → stacks (dependency-resolved). Settings are deep-merged; files are overlaid.
+
 ### 3. Configure MCP Server
 
 Add to your Claude/Warp MCP settings:
@@ -95,8 +118,11 @@ Opens the web dashboard (default port 8686, auto-selects if busy)
 ```powershell
 dotbot help          # Show all commands
 dotbot status        # Check installation status
+dotbot profiles      # List available profiles
 dotbot init          # Add dotbot to current project
-dotbot init -Force   # Reinitialize (overwrites existing)
+dotbot init -Force   # Reinitialize (preserves workspace data)
+dotbot init --profile dotnet                          # With a stack profile
+dotbot init --profile multi-repo,dotnet-blazor        # Workflow + stacks
 ```
 
 ### Update Installation
