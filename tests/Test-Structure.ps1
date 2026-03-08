@@ -496,6 +496,87 @@ if (-not $dotbotInstalled) {
         Write-TestResult -Name "-Profile kickstart-via-jira tests" -Status Skip -Message "kickstart-via-jira profile not found at $kickstartViaJiraProfile"
     }
 
+    # --- Init with -Profile kickstart-via-pr ---
+    Write-Host ""
+    Write-Host "  INIT -PROFILE kickstart-via-pr" -ForegroundColor Cyan
+    Write-Host "  ────────────────────────────────────────────" -ForegroundColor DarkGray
+
+    $kickstartViaPrProfile = Join-Path $dotbotDir "profiles\kickstart-via-pr"
+    Assert-PathExists -Name "-Profile kickstart-via-pr: source profile exists" -Path $kickstartViaPrProfile
+    if (Test-Path $kickstartViaPrProfile) {
+        $testProjectPr = New-TestProject
+        try {
+            Push-Location $testProjectPr
+            & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $dotbotDir "scripts\init-project.ps1") -Profile kickstart-via-pr 2>&1 | Out-Null
+            Pop-Location
+
+            $botDirPr = Join-Path $testProjectPr ".bot"
+            Assert-PathExists -Name "-Profile kickstart-via-pr: .bot created" -Path $botDirPr
+            Assert-PathExists -Name "-Profile kickstart-via-pr: .env.local created" -Path (Join-Path $testProjectPr ".env.local")
+
+            # Key overlay files
+            Assert-PathExists -Name "-Profile kickstart-via-pr: 00-kickstart-interview.md present" `
+                -Path (Join-Path $botDirPr "prompts\workflows\00-kickstart-interview.md")
+            Assert-PathExists -Name "-Profile kickstart-via-pr: 01-plan-product.md present" `
+                -Path (Join-Path $botDirPr "prompts\workflows\01-plan-product.md")
+            Assert-PathExists -Name "-Profile kickstart-via-pr: 02-plan-tasks.md present" `
+                -Path (Join-Path $botDirPr "prompts\workflows\02-plan-tasks.md")
+            Assert-PathExists -Name "-Profile kickstart-via-pr: pr-context/script.ps1 present" `
+                -Path (Join-Path $botDirPr "systems\mcp\tools\pr-context\script.ps1")
+            Assert-PathExists -Name "-Profile kickstart-via-pr: pr-context/metadata.yaml present" `
+                -Path (Join-Path $botDirPr "systems\mcp\tools\pr-context\metadata.yaml")
+            Assert-PathExists -Name "-Profile kickstart-via-pr: settings.default.json present" `
+                -Path (Join-Path $botDirPr "defaults\settings.default.json")
+
+            # profile-init.ps1 should NOT be copied to .bot/
+            Assert-PathNotExists -Name "-Profile kickstart-via-pr: profile-init.ps1 not copied" `
+                -Path (Join-Path $botDirPr "profile-init.ps1")
+
+            # Settings validation
+            $settingsPathPr = Join-Path $botDirPr "defaults\settings.default.json"
+            Assert-ValidJson -Name "-Profile kickstart-via-pr: settings is valid JSON" -Path $settingsPathPr
+            if (Test-Path $settingsPathPr) {
+                $settingsPr = Get-Content $settingsPathPr -Raw | ConvertFrom-Json
+
+                Assert-Equal -Name "-Profile kickstart-via-pr: profile is kickstart-via-pr" `
+                    -Expected "kickstart-via-pr" -Actual $settingsPr.profile
+
+                Assert-True -Name "-Profile kickstart-via-pr: task_categories has 4 values" `
+                    -Condition ($settingsPr.task_categories.Count -eq 4) `
+                    -Message "Expected 4 categories, got $($settingsPr.task_categories.Count)"
+
+                Assert-True -Name "-Profile kickstart-via-pr: preflight has dotbot + git checks" `
+                    -Condition (@($settingsPr.kickstart.preflight).Count -ge 2) `
+                    -Message "Expected at least 2 preflight checks"
+
+                $phaseIdsPr = $settingsPr.kickstart.phases | ForEach-Object { $_.id }
+                Assert-Equal -Name "-Profile kickstart-via-pr: first phase is pr-context" `
+                    -Expected "pr-context" -Actual $phaseIdsPr[0]
+                Assert-True -Name "-Profile kickstart-via-pr: product-docs phase exists" `
+                    -Condition ("product-docs" -in $phaseIdsPr) `
+                    -Message "product-docs phase not found"
+                Assert-True -Name "-Profile kickstart-via-pr: plan-tasks phase exists" `
+                    -Condition ("plan-tasks" -in $phaseIdsPr) `
+                    -Message "plan-tasks phase not found"
+            }
+
+            # All .ps1 files in the profile source are valid PowerShell
+            $allPrPs1Files = Get-ChildItem -Path $kickstartViaPrProfile -Filter "*.ps1" -Recurse
+            foreach ($ps1 in $allPrPs1Files) {
+                $relPath = [System.IO.Path]::GetRelativePath(
+                    [System.IO.Path]::GetFullPath($kickstartViaPrProfile),
+                    [System.IO.Path]::GetFullPath($ps1.FullName)
+                )
+                $relPathKey = $relPath -replace '\\', '/'
+                Assert-ValidPowerShell -Name "-Profile kickstart-via-pr: $relPathKey valid syntax" -Path $ps1.FullName
+            }
+
+        } finally {
+            Remove-TestProject -Path $testProjectPr
+        }
+    } else {
+        Write-TestResult -Name "-Profile kickstart-via-pr tests" -Status Skip -Message "kickstart-via-pr profile not found at $kickstartViaPrProfile"
+    }
     # --- Deprecated alias: -Profile multi-repo ---
     Write-Host ""
     Write-Host "  INIT -PROFILE ALIAS (deprecated)" -ForegroundColor Cyan
@@ -773,6 +854,7 @@ Write-Host "  ──────────────────────
 
 $defaultSettingsPath = Join-Path $repoRoot "profiles\default\defaults\settings.default.json"
 $kickstartViaJiraSettingsPath = Join-Path $repoRoot "profiles\kickstart-via-jira\defaults\settings.default.json"
+$kickstartViaPrSettingsPath = Join-Path $repoRoot "profiles\kickstart-via-pr\defaults\settings.default.json"
 $stateBuilderPath = Join-Path $repoRoot "profiles\default\systems\ui\modules\StateBuilder.psm1"
 $uiIndexPath = Join-Path $repoRoot "profiles\default\systems\ui\static\index.html"
 $uiUpdatesPath = Join-Path $repoRoot "profiles\default\systems\ui\static\modules\ui-updates.js"
@@ -782,6 +864,9 @@ Assert-FileContains -Name "default settings template has instance_id placeholder
     -Pattern '"instance_id"\s*:\s*null'
 Assert-FileContains -Name "kickstart-via-jira settings template has instance_id placeholder" `
     -Path $kickstartViaJiraSettingsPath `
+    -Pattern '"instance_id"\s*:\s*null'
+Assert-FileContains -Name "kickstart-via-pr settings template has instance_id placeholder" `
+    -Path $kickstartViaPrSettingsPath `
     -Pattern '"instance_id"\s*:\s*null'
 Assert-FileContains -Name "StateBuilder includes workspace instance_id in state" `
     -Path $stateBuilderPath `
