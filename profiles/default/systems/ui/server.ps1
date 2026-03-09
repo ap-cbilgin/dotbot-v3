@@ -454,6 +454,80 @@ try {
                     break
                 }
 
+                "/api/aether/bond" {
+                    $contentType = "application/json; charset=utf-8"
+                    if ($method -eq "POST") {
+                        try {
+                            $reader = New-Object System.IO.StreamReader($request.InputStream)
+                            $bodyJson = $reader.ReadToEnd()
+                            $reader.Close()
+                            $bodyObj = $bodyJson | ConvertFrom-Json
+                            $result = Invoke-ConduitBond -IP $bodyObj.conduit
+                            $content = $result | ConvertTo-Json -Depth 5 -Compress
+                        } catch {
+                            $statusCode = 500
+                            $content = @{ success = $false; error = "Bond failed: $($_.Exception.Message)" } | ConvertTo-Json -Compress
+                        }
+                    } else {
+                        $statusCode = 405
+                        $content = @{ success = $false; error = "Method not allowed" } | ConvertTo-Json -Compress
+                    }
+                    break
+                }
+
+                "/api/aether/command" {
+                    $contentType = "application/json; charset=utf-8"
+                    if ($method -eq "POST") {
+                        try {
+                            $reader = New-Object System.IO.StreamReader($request.InputStream)
+                            $bodyJson = $reader.ReadToEnd()
+                            $reader.Close()
+                            $bodyObj = $bodyJson | ConvertFrom-Json
+                            $config = Get-AetherConfig
+                            if (-not $config.conduit -or -not $config.token) {
+                                $statusCode = 400
+                                $content = @{ success = $false; error = "Aether not configured" } | ConvertTo-Json -Compress
+                            } else {
+                                $stateJson = $bodyObj.state | ConvertTo-Json -Depth 5 -Compress
+                                $result = Invoke-ConduitCommand -IP $config.conduit -Token $config.token -Nodes @($bodyObj.nodes) -State $stateJson
+                                $content = $result | ConvertTo-Json -Depth 5 -Compress
+                            }
+                        } catch {
+                            $statusCode = 500
+                            $content = @{ success = $false; error = "Command failed: $($_.Exception.Message)" } | ConvertTo-Json -Compress
+                        }
+                    } else {
+                        $statusCode = 405
+                        $content = @{ success = $false; error = "Method not allowed" } | ConvertTo-Json -Compress
+                    }
+                    break
+                }
+
+                "/api/aether/nodes" {
+                    $contentType = "application/json; charset=utf-8"
+                    $config = Get-AetherConfig
+                    if (-not $config.conduit -or -not $config.token) {
+                        $statusCode = 400
+                        $content = @{ success = $false; error = "Aether not configured" } | ConvertTo-Json -Compress
+                    } else {
+                        $result = Get-ConduitNodes -IP $config.conduit -Token $config.token
+                        $content = $result | ConvertTo-Json -Depth 5 -Compress
+                    }
+                    break
+                }
+
+                "/api/aether/verify" {
+                    $contentType = "application/json; charset=utf-8"
+                    $config = Get-AetherConfig
+                    if (-not $config.conduit -or -not $config.token) {
+                        $content = @{ valid = $false } | ConvertTo-Json -Compress
+                    } else {
+                        $result = Test-ConduitLink -IP $config.conduit -Token $config.token
+                        $content = $result | ConvertTo-Json -Compress
+                    }
+                    break
+                }
+
                 # --- Reference Cache ---
 
                 { $_ -like "/api/file/*" } {

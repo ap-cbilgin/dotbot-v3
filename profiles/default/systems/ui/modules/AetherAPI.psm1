@@ -27,7 +27,7 @@ function Find-Conduit {
         try {
             $cachedConfig = Get-Content $configFile -Raw | ConvertFrom-Json
             if ($cachedConfig.conduit) {
-                $response = Invoke-RestMethod -Uri "http://$($cachedConfig.conduit)/api/config" -TimeoutSec 2 -ErrorAction Stop
+                $response = Invoke-RestMethod -Uri "https://$($cachedConfig.conduit)/api/config" -TimeoutSec 2 -SkipCertificateCheck -ErrorAction Stop
                 if ($response.bridgeid) {
                     return @{
                         IP = $cachedConfig.conduit
@@ -108,6 +108,42 @@ ST: urn:schemas-upnp-org:device:basic:1
         # SSDP failed
     }
 
+    # Method 3: Subnet scan on port 443 — new bridges disable SSDP
+    try {
+        $localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+            $_.InterfaceAlias -notmatch "Loopback" -and $_.PrefixOrigin -eq "Dhcp"
+        } | Select-Object -First 1).IPAddress
+
+        if ($localIp -match "(\d+\.\d+\.\d+)\.\d+") {
+            $subnet = $matches[1]
+            $tasks = @{}
+            1..254 | ForEach-Object {
+                $ip = "$subnet.$_"
+                $tcp = New-Object System.Net.Sockets.TcpClient
+                $tasks[$ip] = @{ Task = $tcp.ConnectAsync($ip, 443); Client = $tcp }
+            }
+            Start-Sleep -Seconds 2
+            foreach ($kv in $tasks.GetEnumerator()) {
+                try { $kv.Value.Client.Dispose() } catch {}
+                if ($kv.Value.Task.Status -eq "RanToCompletion") {
+                    try {
+                        $response = Invoke-RestMethod -Uri "https://$($kv.Key)/api/config" -SkipCertificateCheck -TimeoutSec 2 -ErrorAction Stop
+                        if ($response.bridgeid) {
+                            return @{
+                                IP = $kv.Key
+                                Id = $response.bridgeid
+                            }
+                        }
+                    } catch {
+                        # Not a Hue bridge
+                    }
+                }
+            }
+        }
+    } catch {
+        # Subnet scan failed
+    }
+
     return $null
 }
 
@@ -166,4 +202,78 @@ function Set-AetherConfig {
     }
 }
 
-Export-ModuleMember -Function @('Initialize-AetherAPI', 'Find-Conduit', 'Get-AetherScanResult', 'Get-AetherConfig', 'Set-AetherConfig')
+function Invoke-ConduitBond {
+    param(
+        [Parameter(Mandatory)] [string]$IP
+    )
+    try {
+        $body = @{ devicetype = "dotbot#aether" } | ConvertTo-Json -Compress
+        $response = Invoke-RestMethod -Uri "https://$IP/api" -Method Post -Body $body -ContentType "application/json" -SkipCertificateCheck -TimeoutSec 5 -ErrorAction Stop
+        if ($response -is [array] -and $response[0].success) {
+            return @{ success = $true; username = $response[0].success.username }
+        }
+        # Button not pressed yet or other error
+        $errorType = if ($response -is [array] -and $response[0].error) { $response[0].error.type } else { "unknown" }
+        $errorDesc = if ($response -is [array] -and $response[0].error) { $response[0].error.description } else { "Unknown error" }
+        return @{ success = $false; error = $errorType; description = $errorDesc }
+    } catch {
+        return @{ success = $false; error = "connection"; description = $_.Exception.Message }
+    }
+}
+
+function Get-ConduitNodes {
+    param(
+        [Parameter(Mandatory)] [string]$IP,
+        [Parameter(Mandatory)] [string]$Token
+    )
+    try {
+        $response = Invoke-RestMethod -Uri "https://$IP/api/$Token/lights" -SkipCertificateCheck -TimeoutSec 5 -ErrorAction Stop
+        $nodes = @()
+        foreach ($prop in $response.PSObject.Properties) {
+            $light = $prop.Value
+            $nodes += @{
+                id = $prop.Name
+                name = $light.name
+                type = $light.type
+                reachable = $light.state.reachable
+            }
+        }
+        return @{ success = $true; nodes = $nodes }
+    } catch {
+        return @{ success = $false; nodes = @(); error = $_.Exception.Message }
+    }
+}
+
+function Test-ConduitLink {
+    param(
+        [Parameter(Mandatory)] [string]$IP,
+        [Parameter(Mandatory)] [string]$Token
+    )
+    try {
+        $null = Invoke-RestMethod -Uri "https://$IP/api/$Token/lights" -SkipCertificateCheck -TimeoutSec 3 -ErrorAction Stop
+        return @{ valid = $true }
+    } catch {
+        return @{ valid = $false }
+    }
+}
+
+function Invoke-ConduitCommand {
+    param(
+        [Parameter(Mandatory)] [string]$IP,
+        [Parameter(Mandatory)] [string]$Token,
+        [Parameter(Mandatory)] [array]$Nodes,
+        [Parameter(Mandatory)] [string]$State
+    )
+    $results = @()
+    foreach ($nodeId in $Nodes) {
+        try {
+            $response = Invoke-RestMethod -Uri "https://$IP/api/$Token/lights/$nodeId/state" -Method Put -Body $State -ContentType "application/json" -SkipCertificateCheck -TimeoutSec 3 -ErrorAction Stop
+            $results += @{ nodeId = $nodeId; success = $true }
+        } catch {
+            $results += @{ nodeId = $nodeId; success = $false; error = $_.Exception.Message }
+        }
+    }
+    return @{ success = $true; results = $results }
+}
+
+Export-ModuleMember -Function @('Initialize-AetherAPI', 'Find-Conduit', 'Get-AetherScanResult', 'Get-AetherConfig', 'Set-AetherConfig', 'Invoke-ConduitBond', 'Get-ConduitNodes', 'Test-ConduitLink', 'Invoke-ConduitCommand')
