@@ -210,7 +210,7 @@ function showToast(message, type = 'info', duration = 5000) {
  * Format duration between two ISO date strings
  * @param {string} startIso - Start ISO date string
  * @param {string} endIso - End ISO date string
- * @returns {string} Formatted duration like "2h 15m" or "1d 4h"
+ * @returns {string} Formatted duration like "2h 15m 8s" or "1d 4h 2m 9s"
  */
 function formatDuration(startIso, endIso) {
     if (!startIso || !endIso) return '';
@@ -220,20 +220,42 @@ function formatDuration(startIso, endIso) {
         const diffMs = end - start;
         if (diffMs < 0) return '';
 
-        const mins = Math.floor(diffMs / 60000);
-        const hours = Math.floor(mins / 60);
-        const days = Math.floor(hours / 24);
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        const parts = [];
 
-        if (days > 0) {
-            const remainingHours = hours % 24;
-            return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
-        }
-        if (hours > 0) {
-            const remainingMins = mins % 60;
-            return remainingMins > 0 ? `${hours}h ${remainingMins}min` : `${hours}h`;
-        }
-        return `${mins}min`;
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (mins > 0) parts.push(`${mins}m`);
+        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+        return parts.join(' ');
     } catch (e) {
         return '';
     }
+}
+
+/**
+ * Get the earliest timestamp that represents active work on a task.
+ * Analysis time counts toward the task duration shown in DONE.
+ * @param {Object} task - Task object
+ * @returns {string} ISO timestamp or empty string
+ */
+function getTaskDurationStart(task) {
+    if (!task) return '';
+    return task.analysis_started_at || task.started_at || '';
+}
+
+/**
+ * Format total task duration across analysis and execution.
+ * @param {Object} task - Task object
+ * @returns {string} Formatted duration string
+ */
+function formatTaskDuration(task) {
+    if (!task?.completed_at) return '';
+    const startIso = getTaskDurationStart(task);
+    return startIso ? formatDuration(startIso, task.completed_at) : '';
 }
