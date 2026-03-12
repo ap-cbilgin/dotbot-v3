@@ -153,6 +153,7 @@ function Get-BotState {
             dependencies = @($taskContent.dependencies)
             applicable_agents = @($taskContent.applicable_agents)
             applicable_standards = @($taskContent.applicable_standards)
+            applicable_adrs = @($taskContent.applicable_adrs)
             plan_path = $taskContent.plan_path
             created_at = $taskContent.created_at
             updated_at = $taskContent.updated_at
@@ -185,6 +186,7 @@ function Get-BotState {
                         dependencies = @($taskContent.dependencies)
                         applicable_agents = @($taskContent.applicable_agents)
                         applicable_standards = @($taskContent.applicable_standards)
+                        applicable_adrs = @($taskContent.applicable_adrs)
                         plan_path = $taskContent.plan_path
                         created_at = $taskContent.created_at
                         updated_at = $taskContent.updated_at
@@ -232,6 +234,7 @@ function Get-BotState {
                         dependencies = @($taskContent.dependencies)
                         applicable_agents = @($taskContent.applicable_agents)
                         applicable_standards = @($taskContent.applicable_standards)
+                        applicable_adrs = @($taskContent.applicable_adrs)
                         analysis = $taskContent.analysis
                         questions_resolved = $taskContent.questions_resolved
                         analysis_started_at = $taskContent.analysis_started_at
@@ -345,6 +348,7 @@ function Get-BotState {
                         roadmap_dependencies = Get-RoadmapTaskDependencies -Task $taskContent -DependencyMap $roadmapDependencyMap
                         applicable_agents = $taskContent.applicable_agents
                         applicable_standards = $taskContent.applicable_standards
+                        applicable_adrs = $taskContent.applicable_adrs
                         plan_path = $taskContent.plan_path
                         created_at = $taskContent.created_at
                         updated_at = $taskContent.updated_at
@@ -374,6 +378,7 @@ function Get-BotState {
                     roadmap_dependencies = $_.roadmap_dependencies
                     applicable_agents = $_.applicable_agents
                     applicable_standards = $_.applicable_standards
+                    applicable_adrs = $_.applicable_adrs
                     plan_path = $_.plan_path
                     created_at = $_.created_at
                     updated_at = $_.updated_at
@@ -573,9 +578,20 @@ function Get-BotState {
         }
     }
 
+    # Count ADRs by status
+    $adrsBaseDir = Join-Path $botRoot "workspace\adrs"
+    $adrCounts = @{ proposed = 0; accepted = 0; deprecated = 0; superseded = 0; total = 0 }
+    foreach ($adrStatus in @('proposed', 'accepted', 'deprecated', 'superseded')) {
+        $adrDir = Join-Path $adrsBaseDir $adrStatus
+        $adrCount = if (Test-Path $adrDir) { @(Get-ChildItem -Path $adrDir -Filter "adr-*.md" -File -ErrorAction SilentlyContinue).Count } else { 0 }
+        $adrCounts[$adrStatus] = $adrCount
+        $adrCounts['total'] += $adrCount
+    }
+
     $state = @{
         timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         instance_id = $workspaceInstanceId
+        adrs = $adrCounts
         tasks = @{
             todo = $todoTasks.Count
             analysing = $analysingTasks.Count

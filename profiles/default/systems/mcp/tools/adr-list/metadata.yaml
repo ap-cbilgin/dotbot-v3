@@ -1,0 +1,10 @@
+name: adr_list
+description: List Architecture Decision Records, optionally filtered by status
+inputSchema:
+  type: object
+  additionalProperties: false
+  properties:
+    status:
+      type: string
+      description: Filter by status — proposed, accepted, deprecated, superseded. Omit for all.
+      enum: [proposed, accepted, deprecated, superseded]

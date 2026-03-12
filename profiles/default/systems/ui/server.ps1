@@ -93,6 +93,7 @@ Import-Module (Join-Path $PSScriptRoot "modules\TaskAPI.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\ProcessAPI.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\StateBuilder.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\NotificationPoller.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "modules\AdrAPI.psm1") -Force
 
 # Initialize all domain modules
 Initialize-FileWatchers -BotRoot $botRoot
@@ -106,6 +107,7 @@ Initialize-TaskAPI -BotRoot $botRoot -ProjectRoot $projectRoot
 Initialize-ProcessAPI -ProcessesDir $processesDir -BotRoot $botRoot -ControlDir $controlDir
 Initialize-StateBuilder -BotRoot $botRoot -ControlDir $controlDir -ProcessesDir $processesDir
 Initialize-NotificationPoller -BotRoot $botRoot
+Initialize-AdrAPI -BotRoot $botRoot
 
 # Request counter for single-line logging
 $script:requestCount = 0
@@ -1431,6 +1433,88 @@ try {
                     }
 
                     $content = @{ directories = $directories } | ConvertTo-Json -Depth 5 -Compress
+                    break
+                }
+
+                # --- ADR API ---
+
+                "/api/adrs" {
+                    $contentType = "application/json; charset=utf-8"
+                    if ($method -eq "GET") {
+                        $statusFilter = $request.QueryString['status']
+                        $content = Get-AdrList -StatusFilter $statusFilter | ConvertTo-Json -Depth 10 -Compress
+                    } elseif ($method -eq "POST") {
+                        try {
+                            $reader = New-Object System.IO.StreamReader($request.InputStream)
+                            $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
+                            $reader.Close()
+                            $result = New-Adr -Body $body
+                            if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
+                            $content = $result | ConvertTo-Json -Depth 5 -Compress
+                        } catch {
+                            $statusCode = 500
+                            $content = @{ success = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress
+                        }
+                    } else {
+                        $statusCode = 405
+                        $content = @{ success = $false; error = "Method not allowed" } | ConvertTo-Json -Compress
+                    }
+                    break
+                }
+
+                { $_ -like "/api/adrs/*" -and $_ -notlike "/api/adrs/*/status" } {
+                    $contentType = "application/json; charset=utf-8"
+                    $adrId = ($url -replace "^/api/adrs/", "").Trim('/')
+                    if ($method -eq "GET") {
+                        $result = Get-AdrDetail -AdrId $adrId
+                        if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
+                        $content = $result | ConvertTo-Json -Depth 10 -Compress
+                    } elseif ($method -eq "PUT" -or $method -eq "PATCH") {
+                        try {
+                            $reader = New-Object System.IO.StreamReader($request.InputStream)
+                            $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
+                            $reader.Close()
+                            $result = Update-Adr -AdrId $adrId -Body $body
+                            if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
+                            $content = $result | ConvertTo-Json -Depth 5 -Compress
+                        } catch {
+                            $statusCode = 500
+                            $content = @{ success = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress
+                        }
+                    } else {
+                        $statusCode = 405
+                        $content = @{ success = $false; error = "Method not allowed" } | ConvertTo-Json -Compress
+                    }
+                    break
+                }
+
+                { $_ -like "/api/adrs/*/status" } {
+                    $contentType = "application/json; charset=utf-8"
+                    if ($method -eq "POST") {
+                        try {
+                            $adrId = ($url -replace "^/api/adrs/", "" -replace "/status$", "").Trim('/')
+                            $reader = New-Object System.IO.StreamReader($request.InputStream)
+                            $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
+                            $reader.Close()
+                            $newStatus    = $body['status']
+                            $supersededBy = $body['superseded_by']
+                            $reason       = $body['reason']
+                            if (-not $newStatus) {
+                                $statusCode = 400
+                                $content = @{ success = $false; error = "Missing 'status' field" } | ConvertTo-Json -Compress
+                            } else {
+                                $result = Set-AdrStatus -AdrId $adrId -NewStatus $newStatus -SupersededBy $supersededBy -Reason $reason
+                                if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
+                                $content = $result | ConvertTo-Json -Depth 5 -Compress
+                            }
+                        } catch {
+                            $statusCode = 500
+                            $content = @{ success = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress
+                        }
+                    } else {
+                        $statusCode = 405
+                        $content = @{ success = $false; error = "Method not allowed" } | ConvertTo-Json -Compress
+                    }
                     break
                 }
 

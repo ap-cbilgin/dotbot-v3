@@ -183,9 +183,9 @@ Check that all task dependencies are met.
 }
 ```
 
-### Phase 5: Standards Mapping
+### Phase 5: Standards and ADR Mapping
 
-Identify which coding standards apply to this task.
+Identify which coding standards and ADR constraints apply to this task.
 
 1. **List available standards:**
    ```
@@ -195,19 +195,33 @@ Identify which coding standards apply to this task.
 2. **Determine applicable standards:**
    Based on task category and files involved, select relevant standards.
 
-3. **Extract relevant sections:**
-   Note which specific sections of each standard are most relevant.
+3. **Load applicable ADRs:**
+   If the task has `applicable_adrs` set, read each one:
+   ```javascript
+   mcp__dotbot__adr_get({ adr_id: "adr-001" })
+   ```
+   If `applicable_adrs` is empty, call `adr_list({ status: "accepted" })` and include any ADRs whose consequences are relevant to this task's entities or category.
+
+4. **Extract relevant sections:**
+   Note which specific sections of each standard are most relevant. For ADRs, extract `decision` and `consequences` — these are the binding constraints.
 
 **Example output:**
 ```json
 {
   "standards": {
-    "applicable": [".bot/prompts/standards/global/entity-framework.md", ".bot/prompts/standards/global/testing.md"],
+    "applicable": [".bot/prompts/standards/global/entity-framework.md"],
     "relevant_sections": {
-      "entity-framework.md": ["Configuration patterns", "Migrations"],
-      "testing.md": ["Unit test structure", "Mocking"]
+      "entity-framework.md": ["Configuration patterns", "Migrations"]
     }
-  }
+  },
+  "adrs": [
+    {
+      "id": "adr-001",
+      "title": "Scope to Titan Platform Only",
+      "decision": "All implementation targets Titan only. FinApps integration is deferred.",
+      "consequences": "Do not introduce FinApps dependencies. Acceptance criteria validate Titan only."
+    }
+  ]
 }
 ```
 
@@ -412,6 +426,7 @@ mcp__dotbot__task_mark_analysed({
     files: { ... },
     dependencies: { ... },
     standards: { ... },
+    adrs: [ ... ],          // ADR constraints resolved in Phase 5
     product_context: { ... },
     implementation: { ... }
   }

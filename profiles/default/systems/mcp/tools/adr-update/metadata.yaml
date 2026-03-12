@@ -1,0 +1,33 @@
+name: adr_update
+description: Update the content of an existing ADR. Only provided fields are changed.
+inputSchema:
+  type: object
+  additionalProperties: false
+  properties:
+    adr_id:
+      type: string
+      description: ADR ID to update (e.g. "adr-001")
+    title:
+      type: string
+      description: Updated title
+    context:
+      type: string
+      description: Updated context section
+    decision:
+      type: string
+      description: Updated decision section
+    rationale:
+      type: string
+      description: Updated rationale section
+    consequences:
+      type: string
+      description: Updated consequences section
+    alternatives_considered:
+      type: string
+      description: Updated alternatives considered section
+    related_adrs:
+      type: array
+      description: Updated list of related ADR IDs
+      items:
+        type: string
+  required: [adr_id]

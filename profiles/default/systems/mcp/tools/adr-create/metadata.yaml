@@ -1,0 +1,38 @@
+name: adr_create
+description: Create a new Architecture Decision Record (ADR) in the workspace
+inputSchema:
+  type: object
+  additionalProperties: true
+  properties:
+    title:
+      type: string
+      description: Short title for the decision (e.g. "Use Titan Platform Only")
+    context:
+      type: string
+      description: Background — why this decision needed to be made
+    decision:
+      type: string
+      description: What was decided
+    rationale:
+      type: string
+      description: Why this option was chosen over alternatives
+    consequences:
+      type: string
+      description: Trade-offs, risks, follow-on constraints
+    alternatives_considered:
+      type: string
+      description: What other options were evaluated and why they were rejected
+    status:
+      type: string
+      description: Initial status — proposed (default) or accepted
+      enum: [proposed, accepted]
+    source:
+      type: string
+      description: Where this decision originated — kickstart-interview, task-analysis, or manual
+      enum: [kickstart-interview, task-analysis, manual]
+    related_adrs:
+      type: array
+      description: IDs of related ADRs (e.g. ["adr-001", "adr-002"])
+      items:
+        type: string
+  required: [title, context, decision]

@@ -306,6 +306,21 @@ function buildOverviewSection(task) {
         html += `</div></div>`;
     }
 
+    // Related ADRs
+    if (Array.isArray(task.applicable_adrs) && task.applicable_adrs.length > 0) {
+        html += `<div class="task-list-section">`;
+        html += `<div class="task-list-header">Related ADRs</div>`;
+        html += `<div class="task-tags">`;
+        task.applicable_adrs.forEach(adrId => {
+            if (!adrId) return;
+            const adr = typeof getAdrById === 'function' ? getAdrById(adrId) : null;
+            const label = adr ? `${escapeHtml(adrId)}: ${escapeHtml(adr.title)}` : escapeHtml(adrId);
+            const statusClass = adr ? ` tag-adr-${escapeHtml(adr.status)}` : '';
+            html += `<span class="task-tag tag-adr${statusClass}" title="${adr ? escapeHtml(adr.title) : ''}" onclick="switchToTab('adrs'); toggleAdrExpand('${escapeHtml(adrId)}')" style="cursor:pointer">${label}</span>`;
+        });
+        html += `</div></div>`;
+    }
+
     // Plan button
     if (task.plan_path) {
         html += `<div class="task-plan-button">`;

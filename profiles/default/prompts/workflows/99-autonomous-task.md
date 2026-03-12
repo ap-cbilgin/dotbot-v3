@@ -66,6 +66,7 @@ You are working in a **git worktree** on branch `{{BRANCH_NAME}}`.
    - **files.patterns_from**: Reference files for patterns (don't modify)
    - **files.tests_to_update**: Test files to update
    - **standards.applicable**: Standards to follow
+   - **adrs**: Architecture Decision Records constraining this task — treat as non-negotiable. Do not implement approaches explicitly rejected in an ADR's `alternatives_considered`.
    - **implementation.approach**: Recommended implementation approach
    - **implementation.key_patterns**: Specific patterns to follow
    - **implementation.risks**: Known risks to watch for

@@ -1,0 +1,10 @@
+name: adr_get
+description: Get the full content of an ADR by ID
+inputSchema:
+  type: object
+  additionalProperties: false
+  properties:
+    adr_id:
+      type: string
+      description: ADR ID (e.g. "adr-001")
+  required: [adr_id]

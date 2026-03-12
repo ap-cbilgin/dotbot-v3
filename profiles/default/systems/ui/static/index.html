@@ -57,6 +57,7 @@
                     <button class="tab" data-tab="product">Product</button>
                     <button class="tab" data-tab="pipeline">Roadmap</button>
                     <button class="tab" data-tab="processes">Processes</button>
+                    <button class="tab" data-tab="adrs">ADRs</button>
                     <button class="tab" data-tab="workflow">Workflow</button>
                     <button class="tab" data-tab="settings">Settings</button>
                 </div>
@@ -301,6 +302,42 @@
                     </div>
                 </div>
 
+                <!-- ADRs Context: ADR Summary -->
+                <div class="context-panel hidden" data-context="adrs">
+                    <div class="sidebar-section">
+                        <div class="sidebar-header">
+                            <span class="sidebar-title">◈ ADRs</span>
+                        </div>
+                        <div class="sidebar-content">
+                            <div class="adr-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">Proposed</span>
+                                    <span class="summary-value" id="adr-count-proposed">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Accepted</span>
+                                    <span class="summary-value active" id="adr-count-accepted">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Deprecated</span>
+                                    <span class="summary-value" id="adr-count-deprecated">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Superseded</span>
+                                    <span class="summary-value" id="adr-count-superseded">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Total</span>
+                                    <span class="summary-value" id="adr-count-total">0</span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button class="ctrl-btn-sm primary" id="adr-create-btn" style="width:100%;">+ New ADR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Workflow Context: Dynamic Prompts Directories -->
                 <div class="context-panel hidden" data-context="workflow">
                     <div id="prompts-sidebar">
@@ -534,6 +571,70 @@
                         <!-- Process List -->
                         <div id="process-list">
                             <div class="empty-state">No processes</div>
+                        </div>
+                    </div>
+
+                    <!-- ADRs Tab -->
+                    <div class="tab-pane" id="tab-adrs">
+                        <!-- ADR List (expandable rows grouped by status) -->
+                        <div id="adr-list">
+                            <div class="empty-state">No ADRs yet. Create one or run the interview workflow to generate them automatically.</div>
+                        </div>
+
+                        <!-- ADR Create/Edit Modal -->
+                        <div class="modal-overlay" id="adr-modal-overlay">
+                            <div class="modal modal-wide adr-modal">
+                                <div class="modal-header">
+                                    <span class="modal-title">◈ <span id="adr-modal-title">New ADR</span></span>
+                                    <button class="modal-close" id="adr-modal-close">✕</button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="task-create-form">
+                                        <div class="form-row">
+                                            <div class="form-group" style="flex:1">
+                                                <label class="form-label">Title</label>
+                                                <input type="text" class="form-input" id="adr-form-title" placeholder="e.g. Use Repository Pattern for Data Access" />
+                                            </div>
+                                            <div class="form-group" style="flex:0 0 140px">
+                                                <label class="form-label">Status</label>
+                                                <select class="form-select" id="adr-form-status">
+                                                    <option value="proposed">Proposed</option>
+                                                    <option value="accepted">Accepted</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Context</label>
+                                            <div class="form-hint">Why did this decision need to be made?</div>
+                                            <textarea class="form-textarea" id="adr-form-context" rows="3"></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Decision</label>
+                                            <div class="form-hint">What was decided?</div>
+                                            <textarea class="form-textarea" id="adr-form-decision" rows="3"></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Rationale</label>
+                                            <div class="form-hint">Why this option over alternatives?</div>
+                                            <textarea class="form-textarea" id="adr-form-rationale" rows="3"></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Consequences</label>
+                                            <div class="form-hint">Trade-offs and constraints for future work</div>
+                                            <textarea class="form-textarea" id="adr-form-consequences" rows="3"></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Alternatives Considered</label>
+                                            <div class="form-hint">What was evaluated and rejected?</div>
+                                            <textarea class="form-textarea" id="adr-form-alternatives" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer task-create-footer">
+                                    <button class="ctrl-btn" id="adr-modal-cancel">Cancel</button>
+                                    <button class="ctrl-btn primary" id="adr-modal-save">Save ADR</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1454,6 +1555,7 @@
     <script src="modules/actions.js"></script>
     <script src="modules/notifications.js"></script>
     <script src="modules/aether.js"></script>
+    <script src="modules/adrs.js"></script>
 
     <!-- Main entry point (must be last) -->
     <script src="app.js"></script>
