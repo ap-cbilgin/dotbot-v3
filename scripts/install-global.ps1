@@ -119,6 +119,8 @@ function Show-Help {
     Write-Host "List available profiles" -ForegroundColor White
     Write-Host "    status            " -NoNewline -ForegroundColor Yellow
     Write-Host "Show installation status" -ForegroundColor White
+    Write-Host "    package           " -NoNewline -ForegroundColor Yellow
+    Write-Host "Package .bot changes back to source repo" -ForegroundColor White
     Write-Host "    update            " -NoNewline -ForegroundColor Yellow
     Write-Host "Update global installation" -ForegroundColor White
     Write-Host "    help              " -NoNewline -ForegroundColor Yellow
@@ -277,8 +279,26 @@ function Invoke-Update {
     Write-Host ""
 }
 
+function Invoke-Package {
+    $botDir = Join-Path (Get-Location) ".bot"
+    $packageScript = Join-Path $botDir "package.ps1"
+    if (-not (Test-Path $packageScript)) {
+        Write-Host ""
+        Write-Host "  ✗ No .bot/package.ps1 found in current project" -ForegroundColor Red
+        Write-Host "    Run 'dotbot init' first, or update your .bot installation" -ForegroundColor Yellow
+        Write-Host ""
+        return
+    }
+    if ($SplatArgs.Count -gt 0) {
+        & $packageScript @SplatArgs
+    } else {
+        & $packageScript
+    }
+}
+
 switch ($Command) {
     "init" { Invoke-Init }
+    "package" { Invoke-Package }
     "profiles" { Invoke-Profiles }
     "status" { Invoke-Status }
     "update" { Invoke-Update }
