@@ -365,6 +365,10 @@ async function _saveAdr() {
 
 // ── Public lookup ─────────────────────────────────────────────────────────────
 
+async function reloadAdrs() {
+    await _loadAdrs();
+}
+
 function getAdrById(adrId) {
     return _adrs.find(a => a.id === adrId) || null;
 }

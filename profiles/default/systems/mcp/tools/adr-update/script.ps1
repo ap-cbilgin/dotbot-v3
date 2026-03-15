@@ -5,6 +5,7 @@ function Invoke-AdrUpdate {
 
     $adrId = $Arguments['adr_id']
     if (-not $adrId) { throw "adr_id is required" }
+    if ($adrId -notmatch '^adr-\d{3,}$') { throw "Invalid adr_id format '$adrId'. Expected: adr-NNN" }
 
     $adrsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
     $allStatuses = @('proposed', 'accepted', 'deprecated', 'superseded')
@@ -13,7 +14,8 @@ function Invoke-AdrUpdate {
     foreach ($statusDir in $allStatuses) {
         $dirPath = Join-Path $adrsBaseDir $statusDir
         if (-not (Test-Path $dirPath)) { continue }
-        $files = Get-ChildItem -Path $dirPath -Filter "$adrId-*.md" -File -ErrorAction SilentlyContinue
+        $files = @(Get-ChildItem -LiteralPath $dirPath -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
         if ($files.Count -gt 0) {
             $found = @{ file = $files[0]; status = $statusDir }
             break

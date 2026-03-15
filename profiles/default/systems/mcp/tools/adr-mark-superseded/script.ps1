@@ -6,6 +6,7 @@ function Invoke-AdrMarkSuperseded {
     $adrId       = $Arguments['adr_id']
     $supersededBy = $Arguments['superseded_by']
     if (-not $adrId)        { throw "adr_id is required" }
+    if ($adrId -notmatch '^adr-\d{3,}$') { throw "Invalid adr_id format '$adrId'. Expected: adr-NNN" }
     if (-not $supersededBy) { throw "superseded_by is required" }
     if ($supersededBy -notmatch '^adr-\d{3,}$') { throw "Invalid superseded_by format '$supersededBy'. Expected: adr-NNN" }
 
@@ -16,7 +17,8 @@ function Invoke-AdrMarkSuperseded {
     foreach ($statusDir in $allStatuses) {
         $dirPath = Join-Path $adrsBaseDir $statusDir
         if (-not (Test-Path $dirPath)) { continue }
-        $files = Get-ChildItem -Path $dirPath -Filter "$adrId-*.md" -File -ErrorAction SilentlyContinue
+        $files = @(Get-ChildItem -LiteralPath $dirPath -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
         if ($files.Count -gt 0) { $found = @{ file = $files[0]; status = $statusDir }; break }
     }
 

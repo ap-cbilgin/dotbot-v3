@@ -5,17 +5,20 @@ function Invoke-AdrMarkAccepted {
 
     $adrId = $Arguments['adr_id']
     if (-not $adrId) { throw "adr_id is required" }
+    if ($adrId -notmatch '^adr-\d{3,}$') { throw "Invalid adr_id format '$adrId'. Expected: adr-NNN" }
 
     $adrsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
     $sourceDir   = Join-Path $adrsBaseDir "proposed"
 
     if (-not (Test-Path $sourceDir)) { throw "No proposed ADRs directory found" }
 
-    $files = Get-ChildItem -Path $sourceDir -Filter "$adrId-*.md" -File -ErrorAction SilentlyContinue
+    $files = @(Get-ChildItem -LiteralPath $sourceDir -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
     if ($files.Count -eq 0) {
         # Already accepted?
         $acceptedDir = Join-Path $adrsBaseDir "accepted"
-        $existing = Get-ChildItem -Path $acceptedDir -Filter "$adrId-*.md" -File -ErrorAction SilentlyContinue
+        $existing = @(Get-ChildItem -LiteralPath $acceptedDir -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
         if ($existing.Count -gt 0) {
             return @{ success = $true; adr_id = $adrId; message = "ADR '$adrId' is already accepted" }
         }

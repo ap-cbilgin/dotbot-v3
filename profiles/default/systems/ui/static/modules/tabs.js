@@ -68,7 +68,7 @@ function switchContextPanel(tabId) {
 
     // Reload ADRs when switching to ADRs tab
     if (tabId === 'adrs') {
-        _loadAdrs();
+        reloadAdrs();
     }
 
     // Update product file nav when switching to product tab
