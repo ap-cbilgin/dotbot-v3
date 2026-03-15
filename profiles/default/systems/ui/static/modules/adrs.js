@@ -14,7 +14,37 @@ let _editingAdrId  = null;   // null = create mode
 async function initAdrs() {
     _bindCreateButton();
     _bindModal();
+    _bindListDelegation();
     await _loadAdrs();
+}
+
+function _bindListDelegation() {
+    const container = document.getElementById('adr-list');
+    if (!container) return;
+
+    container.addEventListener('click', (e) => {
+        const row = e.target.closest('.adr-row');
+        if (!row) return;
+        const adrId = row.dataset.adrId;
+        if (!adrId || !isValidAdrId(adrId)) return;
+
+        const actionEl = e.target.closest('[data-action]');
+        if (!actionEl) return;
+        const action = actionEl.dataset.action;
+
+        if (action === 'accept') {
+            e.stopPropagation();
+            adrAccept(adrId);
+        } else if (action === 'deprecate') {
+            e.stopPropagation();
+            adrDeprecate(adrId);
+        } else if (action === 'edit') {
+            e.stopPropagation();
+            _openEditModal(adrId);
+        } else if (action === 'toggle') {
+            toggleAdrExpand(adrId);
+        }
+    });
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -68,7 +98,7 @@ function _renderList() {
             html += `<div class="adr-row${isExpanded ? ' expanded' : ''}" data-adr-id="${escapeAttr(adr.id)}">`;
 
             // ── Collapsed row (always visible) ────────────────────────
-            html += `<div class="adr-row-main" onclick="toggleAdrExpand('${escapeAttr(adr.id)}')">`;
+            html += `<div class="adr-row-main" data-action="toggle">`;
             html += `  <span class="adr-row-id">${escapeHtml(adr.id ?? '')}</span>`;
             html += `  <span class="adr-status-badge ${statusClass}">${escapeHtml(adr.status)}</span>`;
             html += `  <span class="adr-row-title">${escapeHtml(adr.title ?? '')}</span>`;
@@ -78,12 +108,12 @@ function _renderList() {
             html += `  <span class="adr-row-date">${date}</span>`;
             html += `  <div class="adr-row-actions">`;
             if (adr.status === 'proposed') {
-                html += `<button class="process-action-btn primary" onclick="event.stopPropagation(); adrAccept('${escapeAttr(adr.id)}')">Accept</button>`;
+                html += `<button class="process-action-btn primary" data-action="accept">Accept</button>`;
             }
             if (adr.status === 'accepted') {
-                html += `<button class="process-action-btn danger" onclick="event.stopPropagation(); adrDeprecate('${escapeAttr(adr.id)}')">Deprecate</button>`;
+                html += `<button class="process-action-btn danger" data-action="deprecate">Deprecate</button>`;
             }
-            html += `    <button class="process-action-btn" onclick="event.stopPropagation(); _openEditModal('${escapeAttr(adr.id)}')">Edit</button>`;
+            html += `    <button class="process-action-btn" data-action="edit">Edit</button>`;
             html += `  </div>`;
             html += `</div>`; // .adr-row-main
 
@@ -254,7 +284,7 @@ async function _openEditModal(adrId) {
 
         document.getElementById('adr-form-title').value        = data.title ?? '';
         const statusEl = document.getElementById('adr-form-status');
-        statusEl.value = data.status ?? 'proposed';
+        statusEl.value    = data.status ?? 'proposed';
         statusEl.disabled = true;  // Status changes go through dedicated transition buttons
         document.getElementById('adr-form-context').value      = data.sections?.['Context'] ?? '';
         document.getElementById('adr-form-decision').value     = data.sections?.['Decision'] ?? '';
@@ -340,3 +370,4 @@ function getAdrById(adrId) {
 }
 
 // escapeHtml is provided by modules/utils.js (loaded earlier)
+

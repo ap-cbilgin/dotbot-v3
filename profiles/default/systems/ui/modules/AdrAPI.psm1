@@ -74,6 +74,35 @@ function Test-AdrIdFormat([string]$Id) {
     return $Id -match '^adr-\d{3,}$'
 }
 
+function Assert-ValidRelatedAdrs {
+    <#
+    .SYNOPSIS
+    Validates and filters related_adrs to strict ADR ID format.
+    Rejects any value that doesn't match adr-NNN to prevent YAML injection.
+    #>
+    param([array]$Items)
+    $valid = @()
+    foreach ($item in $Items) {
+        if ($item -and $item -match '^adr-\d{3,}$') {
+            $valid += $item
+        }
+    }
+    return $valid
+}
+
+function Format-RelatedAdrsYaml {
+    <#
+    .SYNOPSIS
+    Formats validated related_adrs as a YAML inline list.
+    Items must be pre-validated via Assert-ValidRelatedAdrs.
+    #>
+    param([array]$Items)
+    if ($Items.Count -gt 0) {
+        return "[" + (($Items | ForEach-Object { "`"$_`"" }) -join ", ") + "]"
+    }
+    return "[]"
+}
+
 function Find-AdrFile {
     param([string]$AdrId, [string[]]$Statuses)
     if (-not (Test-AdrIdFormat $AdrId)) { return $null }
@@ -167,7 +196,7 @@ function New-Adr {
     $alternatives = $Body['alternatives_considered'] ?? ''
     $status      = $Body['status'] ?? 'proposed'
     $source      = $Body['source'] ?? 'manual'
-    $relatedAdrs = @($Body['related_adrs'] | Where-Object { $_ })
+    $relatedAdrs = Assert-ValidRelatedAdrs @($Body['related_adrs'] | Where-Object { $_ })
 
     if (-not $title -or -not $context -or -not $decision) {
         return @{ _statusCode = 400; success = $false; error = "title, context, and decision are required" }
@@ -191,7 +220,7 @@ function New-Adr {
     if ($slug.Length -gt 60) { $slug = $slug.Substring(0, 60).TrimEnd('-') }
 
     $now        = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
-    $relatedYaml = if ($relatedAdrs.Count -gt 0) { "[" + (($relatedAdrs | ForEach-Object { "`"$_`"" }) -join ", ") + "]" } else { "[]" }
+    $relatedYaml = Format-RelatedAdrsYaml $relatedAdrs
 
     $safeTitle  = ConvertTo-YamlScalar $title
     $safeSource = ConvertTo-YamlScalar $source
@@ -265,8 +294,8 @@ function Update-Adr {
     $fm['updated_at'] = $now
     if ($Body['title'])        { $fm['title'] = $Body['title'] }
     if ($Body['related_adrs']) {
-        $rel = @($Body['related_adrs'] | Where-Object { $_ })
-        $fm['related_adrs'] = if ($rel.Count -gt 0) { "[" + (($rel | ForEach-Object { "`"$_`"" }) -join ", ") + "]" } else { "[]" }
+        $rel = Assert-ValidRelatedAdrs @($Body['related_adrs'] | Where-Object { $_ })
+        $fm['related_adrs'] = Format-RelatedAdrsYaml $rel
     }
 
     $sectionKeyMap = @{
@@ -307,6 +336,14 @@ function Set-AdrStatus {
     }
     if (-not (Test-AdrIdFormat $AdrId)) {
         return @{ _statusCode = 400; success = $false; error = "Invalid ADR ID format '$AdrId'. Expected: adr-NNN" }
+    }
+    if ($NewStatus -eq 'superseded') {
+        if (-not $SupersededBy) {
+            return @{ _statusCode = 400; success = $false; error = "superseded_by is required when transitioning to superseded" }
+        }
+        if (-not (Test-AdrIdFormat $SupersededBy)) {
+            return @{ _statusCode = 400; success = $false; error = "Invalid superseded_by format '$SupersededBy'. Expected: adr-NNN" }
+        }
     }
 
     $validSources = @('proposed', 'accepted')

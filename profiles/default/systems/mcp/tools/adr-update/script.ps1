@@ -63,8 +63,9 @@ function Invoke-AdrUpdate {
 
     if ($Arguments.ContainsKey('title'))        { $frontmatter['title']  = $Arguments['title'] }
     if ($Arguments.ContainsKey('related_adrs')) {
-        $relArr = @($Arguments['related_adrs'])
-        $frontmatter['related_adrs'] = "[" + (($relArr | ForEach-Object { "`"$_`"" }) -join ", ") + "]"
+        # Validate to strict ADR ID format to prevent YAML injection
+        $relArr = @($Arguments['related_adrs'] | Where-Object { $_ -match '^adr-\d{3,}$' })
+        $frontmatter['related_adrs'] = if ($relArr.Count -gt 0) { "[" + (($relArr | ForEach-Object { "`"$_`"" }) -join ", ") + "]" } else { "[]" }
     }
 
     $sectionKeyMap = @{

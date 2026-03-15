@@ -165,3 +165,22 @@ if ($matchedAdr -and $matchedAdr.title -match "^'") {
     throw "Title still has YAML quotes: $($matchedAdr.title)"
 }
 Write-Host "✓ Titles correctly unquoted in list" -ForegroundColor Green
+
+# ── Test 7: Invalid status filter should fail (path traversal prevention) ──
+Write-Host "`nTest: Invalid status filter should fail" -ForegroundColor Yellow
+$response = Send-McpRequest -Process $Process -Request @{
+    jsonrpc = '2.0'
+    id = 7
+    method = 'tools/call'
+    params = @{
+        name = 'adr_list'
+        arguments = @{
+            status = '..\..\..\'
+        }
+    }
+}
+$errorMsg = if ($response.error) { $response.error.message } else { $response.result.content[0].text }
+if ($errorMsg -notmatch 'Invalid status') {
+    throw "Expected 'Invalid status' error, got: $errorMsg"
+}
+Write-Host "✓ Invalid status filter correctly rejected" -ForegroundColor Green

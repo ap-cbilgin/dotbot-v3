@@ -11,7 +11,10 @@ function Invoke-AdrCreate {
     $alternativesConsidered = $Arguments['alternatives_considered'] ?? ''
     $status                = $Arguments['status'] ?? 'proposed'
     $source                = $Arguments['source'] ?? 'manual'
-    $relatedAdrs           = $Arguments['related_adrs'] ?? @()
+    $relatedAdrsRaw        = $Arguments['related_adrs'] ?? @()
+
+    # Validate related_adrs to strict ADR ID format to prevent YAML injection
+    $relatedAdrs = @($relatedAdrsRaw | Where-Object { $_ -match '^adr-\d{3,}$' })
 
     if (-not $title)    { throw "ADR title is required" }
     if (-not $context)  { throw "ADR context is required" }

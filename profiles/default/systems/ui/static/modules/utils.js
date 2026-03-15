@@ -32,6 +32,16 @@ function escapeAttr(text) {
 }
 
 /**
+ * Validate that a string matches the expected ADR ID pattern (adr-NNN).
+ * Use before passing IDs into DOM operations or API calls.
+ * @param {string} id - Value to validate
+ * @returns {boolean} True if valid ADR ID format
+ */
+function isValidAdrId(id) {
+    return typeof id === 'string' && /^adr-\d{3,}$/.test(id);
+}
+
+/**
  * Set text content of element by ID
  * @param {string} id - Element ID
  * @param {string|number} text - Text to set

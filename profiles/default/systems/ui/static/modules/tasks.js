@@ -16,6 +16,17 @@ function initTaskClicks() {
 
     // Delegate for dynamic task lists
     document.addEventListener('click', (e) => {
+        // Handle ADR link clicks (from Related ADRs tags)
+        const adrLink = e.target.closest('[data-adr-link]');
+        if (adrLink) {
+            const adrId = adrLink.dataset.adrLink;
+            if (adrId && isValidAdrId(adrId)) {
+                switchToTab('adrs');
+                toggleAdrExpand(adrId);
+            }
+            return;
+        }
+
         if (e.target.closest('.roadmap-task-action') || e.target.closest('.roadmap-header-action')) {
             return;
         }

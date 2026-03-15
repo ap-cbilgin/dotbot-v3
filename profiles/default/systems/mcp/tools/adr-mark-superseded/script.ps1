@@ -7,6 +7,7 @@ function Invoke-AdrMarkSuperseded {
     $supersededBy = $Arguments['superseded_by']
     if (-not $adrId)        { throw "adr_id is required" }
     if (-not $supersededBy) { throw "superseded_by is required" }
+    if ($supersededBy -notmatch '^adr-\d{3,}$') { throw "Invalid superseded_by format '$supersededBy'. Expected: adr-NNN" }
 
     $adrsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
     $allStatuses = @('proposed', 'accepted')

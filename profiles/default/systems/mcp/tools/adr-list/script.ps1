@@ -6,6 +6,11 @@ function Invoke-AdrList {
     $filterStatus = $Arguments['status']
     $adrsBaseDir  = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
     $allStatuses  = @('proposed', 'accepted', 'deprecated', 'superseded')
+
+    if ($filterStatus -and $filterStatus -notin $allStatuses) {
+        throw "Invalid status filter '$filterStatus'. Must be one of: $($allStatuses -join ', ')"
+    }
+
     $searchDirs   = if ($filterStatus) { @($filterStatus) } else { $allStatuses }
 
     $adrs = @()

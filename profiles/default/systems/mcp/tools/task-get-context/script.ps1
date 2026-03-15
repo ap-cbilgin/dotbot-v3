@@ -80,7 +80,7 @@ function Invoke-TaskGetContext {
 
     # Resolve ADR content from applicable_adrs list
     $adrContent = @()
-    $adrIds = @($taskContent.applicable_adrs | Where-Object { $_ })
+    $adrIds = @($taskContent.applicable_adrs | Where-Object { $_ -match '^adr-\d{3,}$' })
     if ($adrIds.Count -gt 0) {
         $adrsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
         $adrStatuses = @('accepted', 'proposed', 'deprecated', 'superseded')
@@ -89,7 +89,8 @@ function Invoke-TaskGetContext {
             foreach ($statusDir in $adrStatuses) {
                 $dirPath = Join-Path $adrsBaseDir $statusDir
                 if (-not (Test-Path $dirPath)) { continue }
-                $files = Get-ChildItem -Path $dirPath -Filter "$adrId-*.md" -File -ErrorAction SilentlyContinue
+                $files = @(Get-ChildItem -LiteralPath $dirPath -File -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
                 if ($files.Count -gt 0) {
                     try {
                         $raw = Get-Content -Path $files[0].FullName -Raw
