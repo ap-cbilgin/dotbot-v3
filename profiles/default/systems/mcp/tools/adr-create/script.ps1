@@ -53,15 +53,18 @@ function Invoke-AdrCreate {
         "[" + (($relatedAdrs | ForEach-Object { "`"$_`"" }) -join ", ") + "]"
     } else { "[]" }
 
-    # Build markdown content
+    # Build markdown content (quote user-provided scalars for YAML safety)
+    $safeTitle  = ConvertTo-YamlScalar $title
+    $safeSource = ConvertTo-YamlScalar $source
+
     $content = @"
 ---
 id: $id
-title: $title
+title: $safeTitle
 status: $status
 created_at: $now
 updated_at: $now
-source: $source
+source: $safeSource
 related_adrs: $relatedYaml
 superseded_by: null
 ---

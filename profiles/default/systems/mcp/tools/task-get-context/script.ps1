@@ -98,7 +98,13 @@ function Invoke-TaskGetContext {
                         if ($raw -match '(?s)^---\r?\n(.+?)\r?\n---\r?\n(.*)$') {
                             $fm = $Matches[1]; $body = $Matches[2].Trim()
                             foreach ($line in ($fm -split '\r?\n')) {
-                                if ($line -match '^(\w[\w_-]*):\s*(.*)$') { $frontmatter[$Matches[1]] = $Matches[2].Trim() }
+                                if ($line -match '^(\w[\w_-]*):\s*(.*)$') {
+                                    $fmVal = $Matches[2].Trim()
+                                    if ($fmVal.Length -ge 2 -and $fmVal[0] -eq "'" -and $fmVal[-1] -eq "'") {
+                                        $fmVal = $fmVal.Substring(1, $fmVal.Length - 2) -replace "''", "'"
+                                    }
+                                    $frontmatter[$Matches[1]] = $fmVal
+                                }
                             }
                             $curSection = $null; $curLines = [System.Collections.Generic.List[string]]::new()
                             foreach ($line in ($body -split '\r?\n')) {
@@ -110,12 +116,14 @@ function Invoke-TaskGetContext {
                             if ($curSection) { $sections[$curSection] = ($curLines -join "`n").Trim() }
                         }
                         $adrContent += @{
-                            id           = $adrId
-                            title        = $frontmatter['title']
-                            status       = $statusDir
-                            decision     = $sections['Decision']
-                            rationale    = $sections['Rationale']
-                            consequences = $sections['Consequences']
+                            id                       = $adrId
+                            title                    = $frontmatter['title']
+                            status                   = $statusDir
+                            context                  = $sections['Context']
+                            decision                 = $sections['Decision']
+                            rationale                = $sections['Rationale']
+                            consequences             = $sections['Consequences']
+                            alternatives_considered  = $sections['Alternatives Considered']
                         }
                         $adrFound = $true
                     } catch { }
@@ -123,7 +131,7 @@ function Invoke-TaskGetContext {
                 }
             }
             if (-not $adrFound) {
-                $adrContent += @{ id = $adrId; title = $null; status = 'not-found'; decision = $null }
+                $adrContent += @{ id = $adrId; title = $null; status = 'not-found'; context = $null; decision = $null; rationale = $null; consequences = $null; alternatives_considered = $null }
             }
         }
     }

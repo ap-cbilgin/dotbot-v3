@@ -35,7 +35,12 @@ function Invoke-AdrGet {
         $body = $Matches[2].Trim()
         foreach ($line in ($fm -split '\r?\n')) {
             if ($line -match '^(\w[\w_-]*):\s*(.*)$') {
-                $frontmatter[$Matches[1]] = $Matches[2].Trim()
+                $val = $Matches[2].Trim()
+                # Strip YAML single-quoted scalars
+                if ($val.Length -ge 2 -and $val[0] -eq "'" -and $val[-1] -eq "'") {
+                    $val = $val.Substring(1, $val.Length - 2) -replace "''", "'"
+                }
+                $frontmatter[$Matches[1]] = $val
             }
         }
     }

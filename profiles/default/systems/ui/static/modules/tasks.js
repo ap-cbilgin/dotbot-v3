@@ -316,7 +316,7 @@ function buildOverviewSection(task) {
             const adr = typeof getAdrById === 'function' ? getAdrById(adrId) : null;
             const label = adr ? `${escapeHtml(adrId)}: ${escapeHtml(adr.title)}` : escapeHtml(adrId);
             const statusClass = adr ? ` tag-adr-${escapeHtml(adr.status)}` : '';
-            html += `<span class="task-tag tag-adr${statusClass}" title="${adr ? escapeHtml(adr.title) : ''}" onclick="switchToTab('adrs'); toggleAdrExpand('${escapeHtml(adrId)}')" style="cursor:pointer">${label}</span>`;
+            html += `<span class="task-tag tag-adr${statusClass}" title="${adr ? escapeAttr(adr.title) : ''}" onclick="switchToTab('adrs'); toggleAdrExpand('${escapeAttr(adrId)}')" style="cursor:pointer">${label}</span>`;
         });
         html += `</div></div>`;
     }

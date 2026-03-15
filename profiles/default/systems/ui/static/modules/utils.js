@@ -16,6 +16,22 @@ function escapeHtml(text) {
 }
 
 /**
+ * Escape a string for safe use inside HTML attribute values (quoted with ").
+ * Escapes &, <, >, ", and ' to prevent attribute breakout and XSS.
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text safe for attribute interpolation
+ */
+function escapeAttr(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Set text content of element by ID
  * @param {string} id - Element ID
  * @param {string|number} text - Text to set

@@ -200,7 +200,7 @@ Identify which coding standards and ADR constraints apply to this task.
    ```javascript
    mcp__dotbot__adr_get({ adr_id: "adr-001" })
    ```
-   If `applicable_adrs` is empty, call `adr_list({ status: "accepted" })` and include any ADRs whose consequences are relevant to this task's entities or category.
+   If `applicable_adrs` is empty, call `mcp__dotbot__adr_list({ status: "accepted" })` and include any ADRs whose consequences are relevant to this task's entities or category.
 
 4. **Extract relevant sections:**
    Note which specific sections of each standard are most relevant. For ADRs, extract `decision` and `consequences` — these are the binding constraints.

@@ -11,6 +11,14 @@ $script:Config = @{
     BotRoot = $null
 }
 
+function ConvertTo-YamlScalar {
+    param([string]$Value)
+    if ($null -eq $Value -or $Value -eq '') { return "''" }
+    $sanitized = $Value -replace '(\r\n|\r|\n)', ' '
+    $escaped   = $sanitized -replace "'", "''"
+    return "'$escaped'"
+}
+
 function Initialize-AdrAPI {
     param(
         [Parameter(Mandatory)] [string]$BotRoot
@@ -28,7 +36,12 @@ function Read-AdrFrontmatter {
     if ($Raw -match '(?s)^---\r?\n(.+?)\r?\n---') {
         foreach ($line in ($Matches[1] -split '\r?\n')) {
             if ($line -match '^(\w[\w_-]*):\s*(.*)$') {
-                $fm[$Matches[1]] = $Matches[2].Trim()
+                $val = $Matches[2].Trim()
+                # Strip YAML single-quoted scalars: 'value''s here' -> value's here
+                if ($val.Length -ge 2 -and $val[0] -eq "'" -and $val[-1] -eq "'") {
+                    $val = $val.Substring(1, $val.Length - 2) -replace "''", "'"
+                }
+                $fm[$Matches[1]] = $val
             }
         }
     }
@@ -57,14 +70,21 @@ function Read-AdrSections {
     return $sections
 }
 
+function Test-AdrIdFormat([string]$Id) {
+    return $Id -match '^adr-\d{3,}$'
+}
+
 function Find-AdrFile {
     param([string]$AdrId, [string[]]$Statuses)
+    if (-not (Test-AdrIdFormat $AdrId)) { return $null }
     $base = Get-AdrsBaseDir
     foreach ($s in $Statuses) {
         $dir = Join-Path $base $s
         if (-not (Test-Path $dir)) { continue }
-        $files = Get-ChildItem -Path $dir -Filter "$AdrId-*.md" -File -ErrorAction SilentlyContinue
-        if ($files.Count -gt 0) { return @{ file = $files[0]; status = $s } }
+        # Use -LiteralPath with Where-Object to avoid wildcard expansion in AdrId
+        $files = Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "$AdrId-*.md" -or $_.Name -eq "$AdrId.md" }
+        if ($files.Count -gt 0) { return @{ file = @($files)[0]; status = $s } }
     }
     return $null
 }
@@ -75,6 +95,9 @@ function Get-AdrList {
     param([string]$StatusFilter)
     $base         = Get-AdrsBaseDir
     $allStatuses  = @('proposed', 'accepted', 'deprecated', 'superseded')
+    if ($StatusFilter -and $StatusFilter -notin $allStatuses) {
+        return @{ _statusCode = 400; success = $false; error = "Invalid status filter '$StatusFilter'. Must be one of: $($allStatuses -join ', ')" }
+    }
     $searchDirs   = if ($StatusFilter) { @($StatusFilter) } else { $allStatuses }
     $adrs = @()
 
@@ -170,14 +193,17 @@ function New-Adr {
     $now        = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
     $relatedYaml = if ($relatedAdrs.Count -gt 0) { "[" + (($relatedAdrs | ForEach-Object { "`"$_`"" }) -join ", ") + "]" } else { "[]" }
 
+    $safeTitle  = ConvertTo-YamlScalar $title
+    $safeSource = ConvertTo-YamlScalar $source
+
     $fileContent = @"
 ---
 id: $id
-title: $title
+title: $safeTitle
 status: $status
 created_at: $now
 updated_at: $now
-source: $source
+source: $safeSource
 related_adrs: $relatedYaml
 superseded_by: null
 ---
@@ -254,7 +280,11 @@ function Update-Adr {
         if ($Body.ContainsKey($k)) { $sectionsMap[$sectionKeyMap[$k]] = $Body[$k] }
     }
 
-    $fmLines = @(); foreach ($k in $fm.Keys) { $fmLines += "$($k): $($fm[$k])" }
+    $yamlQuotedKeys = @('title', 'source')
+    $fmLines = @(); foreach ($k in $fm.Keys) {
+        if ($k -in $yamlQuotedKeys) { $fmLines += "$($k): $(ConvertTo-YamlScalar $fm[$k])" }
+        else { $fmLines += "$($k): $($fm[$k])" }
+    }
     $order   = @('Context', 'Decision', 'Rationale', 'Consequences', 'Alternatives Considered')
     $parts   = @()
     foreach ($s in $order) { if ($sectionsMap.Contains($s)) { $parts += "## $s`n`n$($sectionsMap[$s])" } }
@@ -270,6 +300,14 @@ function Update-Adr {
 
 function Set-AdrStatus {
     param([string]$AdrId, [string]$NewStatus, [string]$SupersededBy, [string]$Reason)
+
+    $allStatuses = @('proposed', 'accepted', 'deprecated', 'superseded')
+    if ($NewStatus -notin $allStatuses) {
+        return @{ _statusCode = 400; success = $false; error = "Invalid status '$NewStatus'. Must be one of: $($allStatuses -join ', ')" }
+    }
+    if (-not (Test-AdrIdFormat $AdrId)) {
+        return @{ _statusCode = 400; success = $false; error = "Invalid ADR ID format '$AdrId'. Expected: adr-NNN" }
+    }
 
     $validSources = @('proposed', 'accepted')
     $found = Find-AdrFile -AdrId $AdrId -Statuses $validSources

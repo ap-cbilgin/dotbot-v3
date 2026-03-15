@@ -1442,7 +1442,9 @@ try {
                     $contentType = "application/json; charset=utf-8"
                     if ($method -eq "GET") {
                         $statusFilter = $request.QueryString['status']
-                        $content = Get-AdrList -StatusFilter $statusFilter | ConvertTo-Json -Depth 10 -Compress
+                        $result = Get-AdrList -StatusFilter $statusFilter
+                        if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
+                        $content = $result | ConvertTo-Json -Depth 10 -Compress
                     } elseif ($method -eq "POST") {
                         try {
                             $reader = New-Object System.IO.StreamReader($request.InputStream)

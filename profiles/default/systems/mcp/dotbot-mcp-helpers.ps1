@@ -2,8 +2,24 @@
 .SYNOPSIS
     Helper functions for MCP server
 .DESCRIPTION
-    Shared utility functions for JSON-RPC communication and date parsing
+    Shared utility functions for JSON-RPC communication, date parsing, and YAML formatting
 #>
+
+function ConvertTo-YamlScalar {
+    <#
+    .SYNOPSIS
+        Safely format a string as a YAML single-quoted scalar.
+    .DESCRIPTION
+        Replaces newlines with spaces and escapes single quotes so the value
+        can be embedded in YAML frontmatter without corrupting the file or
+        injecting additional keys.
+    #>
+    param([string]$Value)
+    if ($null -eq $Value -or $Value -eq '') { return "''" }
+    $sanitized = $Value -replace '(\r\n|\r|\n)', ' '
+    $escaped   = $sanitized -replace "'", "''"
+    return "'$escaped'"
+}
 
 function Write-JsonRpcResponse {
     param(

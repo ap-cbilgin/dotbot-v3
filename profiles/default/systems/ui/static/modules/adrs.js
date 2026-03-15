@@ -65,10 +65,10 @@ function _renderList() {
             const date        = _friendlyDate(adr.updated_at ?? adr.created_at);
             const source      = adr.source ? escapeHtml(adr.source) : '';
 
-            html += `<div class="adr-row${isExpanded ? ' expanded' : ''}" data-adr-id="${escapeHtml(adr.id)}">`;
+            html += `<div class="adr-row${isExpanded ? ' expanded' : ''}" data-adr-id="${escapeAttr(adr.id)}">`;
 
             // ── Collapsed row (always visible) ────────────────────────
-            html += `<div class="adr-row-main" onclick="toggleAdrExpand('${escapeHtml(adr.id)}')">`;
+            html += `<div class="adr-row-main" onclick="toggleAdrExpand('${escapeAttr(adr.id)}')">`;
             html += `  <span class="adr-row-id">${escapeHtml(adr.id ?? '')}</span>`;
             html += `  <span class="adr-status-badge ${statusClass}">${escapeHtml(adr.status)}</span>`;
             html += `  <span class="adr-row-title">${escapeHtml(adr.title ?? '')}</span>`;
@@ -78,12 +78,12 @@ function _renderList() {
             html += `  <span class="adr-row-date">${date}</span>`;
             html += `  <div class="adr-row-actions">`;
             if (adr.status === 'proposed') {
-                html += `<button class="process-action-btn primary" onclick="event.stopPropagation(); adrAccept('${escapeHtml(adr.id)}')">Accept</button>`;
+                html += `<button class="process-action-btn primary" onclick="event.stopPropagation(); adrAccept('${escapeAttr(adr.id)}')">Accept</button>`;
             }
             if (adr.status === 'accepted') {
-                html += `<button class="process-action-btn danger" onclick="event.stopPropagation(); adrDeprecate('${escapeHtml(adr.id)}')">Deprecate</button>`;
+                html += `<button class="process-action-btn danger" onclick="event.stopPropagation(); adrDeprecate('${escapeAttr(adr.id)}')">Deprecate</button>`;
             }
-            html += `    <button class="process-action-btn" onclick="event.stopPropagation(); _openEditModal('${escapeHtml(adr.id)}')">Edit</button>`;
+            html += `    <button class="process-action-btn" onclick="event.stopPropagation(); _openEditModal('${escapeAttr(adr.id)}')">Edit</button>`;
             html += `  </div>`;
             html += `</div>`; // .adr-row-main
 
@@ -239,6 +239,8 @@ function _openCreateModal() {
     _editingAdrId = null;
     document.getElementById('adr-modal-title').textContent = 'New ADR';
     _clearForm();
+    const statusEl = document.getElementById('adr-form-status');
+    if (statusEl) statusEl.disabled = false;
     document.getElementById('adr-modal-overlay').classList.add('visible');
 }
 
@@ -251,7 +253,9 @@ async function _openEditModal(adrId) {
         if (!data.success) { showToast(data.error || 'Failed to load ADR', 'error'); return; }
 
         document.getElementById('adr-form-title').value        = data.title ?? '';
-        document.getElementById('adr-form-status').value       = data.status ?? 'proposed';
+        const statusEl = document.getElementById('adr-form-status');
+        statusEl.value = data.status ?? 'proposed';
+        statusEl.disabled = true;  // Status changes go through dedicated transition buttons
         document.getElementById('adr-form-context').value      = data.sections?.['Context'] ?? '';
         document.getElementById('adr-form-decision').value     = data.sections?.['Decision'] ?? '';
         document.getElementById('adr-form-rationale').value    = data.sections?.['Rationale'] ?? '';
@@ -292,7 +296,10 @@ async function _saveAdr() {
         return;
     }
 
-    const payload = { title, status, context, decision, rationale, consequences, alternatives_considered: alternatives, source: 'manual' };
+    // Status is only sent on create; edits use dedicated transition buttons
+    const payload = _editingAdrId
+        ? { title, context, decision, rationale, consequences, alternatives_considered: alternatives }
+        : { title, status, context, decision, rationale, consequences, alternatives_considered: alternatives, source: 'manual' };
 
     try {
         let res;
@@ -332,10 +339,4 @@ function getAdrById(adrId) {
     return _adrs.find(a => a.id === adrId) || null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function escapeHtml(str) {
-    if (typeof escapeHtmlUtil === 'function') return escapeHtmlUtil(str);
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
+// escapeHtml is provided by modules/utils.js (loaded earlier)
