@@ -557,12 +557,12 @@
     border-top: 1px solid var(--primary-08);
 }
 
-/* ========== ADR GROUPS ========== */
-.adr-group {
+/* ========== DECISION GROUPS ========== */
+.decision-group {
     margin-bottom: 16px;
 }
 
-.adr-group-header {
+.decision-group-header {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.15em;
@@ -573,23 +573,23 @@
     font-family: var(--font-ui);
 }
 
-/* ========== ADR ROWS ========== */
-.adr-row {
+/* ========== DECISION ROWS ========== */
+.decision-row {
     border: 1px solid var(--primary-08);
     border-radius: 3px;
     margin: 4px 8px;
     transition: border-color 0.2s;
 }
 
-.adr-row:hover {
+.decision-row:hover {
     border-color: var(--primary-20);
 }
 
-.adr-row.expanded {
+.decision-row.expanded {
     border-color: var(--primary-30);
 }
 
-.adr-row-main {
+.decision-row-main {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -598,15 +598,15 @@
     min-height: 36px;
 }
 
-.adr-row-id {
+.decision-row-id {
     font-size: 10px;
     font-family: var(--font-mono);
     color: var(--color-muted);
     flex-shrink: 0;
-    min-width: 58px;
+    min-width: 90px;
 }
 
-.adr-row-title {
+.decision-row-title {
     font-size: 12px;
     color: var(--color-primary);
     flex: 1;
@@ -615,15 +615,7 @@
     white-space: nowrap;
 }
 
-.adr-row-source {
-    font-size: 10px;
-    color: var(--color-secondary);
-    flex-shrink: 0;
-    font-family: var(--font-ui);
-    letter-spacing: 0.03em;
-}
-
-.adr-row-date {
+.decision-row-date {
     font-size: 10px;
     color: var(--color-muted);
     flex-shrink: 0;
@@ -631,14 +623,14 @@
     text-align: right;
 }
 
-.adr-row-actions {
+.decision-row-actions {
     display: flex;
     gap: 4px;
     flex-shrink: 0;
 }
 
-/* ========== ADR STATUS BADGES ========== */
-.adr-status-badge {
+/* ========== DECISION STATUS BADGES ========== */
+.decision-status-badge {
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.07em;
@@ -649,19 +641,37 @@
     font-family: var(--font-ui);
 }
 
-.adr-status-proposed   { background: var(--primary-10);  color: var(--color-primary); }
-.adr-status-accepted   { background: rgb(var(--color-success-rgb, 0 200 120) / 0.12); color: var(--color-success); }
-.adr-status-deprecated { background: var(--primary-08);  color: var(--color-muted); }
-.adr-status-superseded { background: var(--primary-08);  color: var(--color-muted); }
+.decision-status-proposed   { background: var(--primary-10);  color: var(--color-primary); }
+.decision-status-accepted   { background: rgb(var(--color-success-rgb, 0 200 120) / 0.12); color: var(--color-success); }
+.decision-status-deprecated { background: var(--primary-08);  color: var(--color-muted); }
+.decision-status-superseded { background: var(--primary-08);  color: var(--color-muted); }
 
-/* ========== ADR DETAIL (EXPANDED INLINE) ========== */
-.adr-detail {
+.decision-type-badge,
+.decision-impact-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    font-family: var(--font-ui);
+    background: var(--primary-08);
+    color: var(--color-secondary);
+}
+
+.decision-impact-badge.impact-high   { background: rgb(var(--color-error-rgb, 255 80 80) / 0.12); color: var(--color-error); }
+.decision-impact-badge.impact-medium { background: var(--primary-10); color: var(--color-primary); }
+.decision-impact-badge.impact-low    { background: var(--primary-08); color: var(--color-muted); }
+
+/* ========== DECISION DETAIL (EXPANDED INLINE) ========== */
+.decision-detail {
     border-top: 1px solid var(--primary-10);
     padding: 10px 12px;
     background: var(--bg-screen);
 }
 
-.adr-detail-meta {
+.decision-detail-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
@@ -670,12 +680,12 @@
     margin-bottom: 10px;
 }
 
-.adr-meta-item {
+.decision-meta-item {
     font-size: 11px;
     color: var(--color-primary-dim);
 }
 
-.adr-meta-item b {
+.decision-meta-item b {
     color: var(--label-color);
     font-weight: 600;
     font-size: 10px;
@@ -683,15 +693,15 @@
     text-transform: uppercase;
 }
 
-.adr-section {
+.decision-section {
     margin-bottom: 12px;
 }
 
-.adr-section:last-child {
+.decision-section:last-child {
     margin-bottom: 0;
 }
 
-.adr-section-title {
+.decision-section-title {
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -701,7 +711,7 @@
     font-family: var(--font-ui);
 }
 
-.adr-section-body {
+.decision-section-body {
     font-size: 12px;
     color: var(--color-primary-dim);
     line-height: 1.6;
@@ -709,26 +719,26 @@
     word-break: break-word;
 }
 
-/* ========== ADR SIDEBAR SUMMARY ========== */
-.adr-summary .summary-item {
+/* ========== DECISION SIDEBAR SUMMARY ========== */
+.decision-summary .summary-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 4px 0;
 }
 
-.adr-summary .summary-label {
+.decision-summary .summary-label {
     font-size: 11px;
     color: var(--label-color);
 }
 
-.adr-summary .summary-value {
+.decision-summary .summary-value {
     font-size: 13px;
     font-weight: 600;
     color: var(--color-primary);
     font-family: var(--font-mono);
 }
 
-.adr-summary .summary-value.active {
+.decision-summary .summary-value.active {
     color: var(--color-success);
 }

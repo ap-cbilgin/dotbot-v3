@@ -26,14 +26,14 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create an ADR to update ──
-Write-Host "Setup: Creating test ADR for update tests" -ForegroundColor DarkGray
+# ── Setup: Create a Decision to update ──
+Write-Host "Setup: Creating test Decision for update tests" -ForegroundColor DarkGray
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = 'Original Title'
             context = 'Original context.'
@@ -45,19 +45,19 @@ $response = Send-McpRequest -Process $Process -Request @{
     }
 }
 $created = $response.result.content[0].text | ConvertFrom-Json
-$testAdrId = $created.adr_id
-Write-Host "  Created $testAdrId" -ForegroundColor DarkGray
+$testDecisionId = $created.decision_id
+Write-Host "  Created $testDecisionId" -ForegroundColor DarkGray
 
 # ── Test 1: Update title ──
-Write-Host "`nTest: Update ADR title" -ForegroundColor Yellow
+Write-Host "`nTest: Update Decision title" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
             title = 'Updated Title'
         }
     }
@@ -71,8 +71,8 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 11
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
@@ -86,9 +86,9 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 2
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
             context = 'Updated context with more details about the problem.'
         }
     }
@@ -102,8 +102,8 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 21
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
@@ -123,9 +123,9 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 3
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
             title = "Use gRPC: It's faster & supports streaming"
         }
     }
@@ -139,8 +139,8 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 31
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
@@ -149,29 +149,29 @@ if ($fetched.title -ne "Use gRPC: It's faster & supports streaming") {
 }
 Write-Host "✓ Title with special chars round-tripped correctly" -ForegroundColor Green
 
-# ── Test 4: Update related_adrs ──
-Write-Host "`nTest: Update related ADRs" -ForegroundColor Yellow
+# ── Test 4: Update related_decisions ──
+Write-Host "`nTest: Update related Decisions" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 4
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = $testAdrId
-            related_adrs = @('adr-001', 'adr-003')
+            decision_id = $testDecisionId
+            related_decisions = @('dec-00000001', 'dec-00000003')
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
 
-# Verify file contains related_adrs
+# Verify file contains related_decisions
 $fileContent = Get-Content -Path $result.file_path -Raw
-if ($fileContent -notmatch 'related_adrs:.*adr-001.*adr-003') {
-    throw "related_adrs not written correctly"
+if ($fileContent -notmatch 'related_decisions:.*dec-00000001.*dec-00000003') {
+    throw "related_decisions not written correctly"
 }
-Write-Host "✓ Related ADRs updated" -ForegroundColor Green
+Write-Host "✓ Related Decisions updated" -ForegroundColor Green
 
 # ── Test 5: Update sets updated_at timestamp ──
 Write-Host "`nTest: Update sets updated_at timestamp" -ForegroundColor Yellow
@@ -180,9 +180,9 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 5
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
             rationale = 'Updated rationale.'
         }
     }
@@ -195,24 +195,24 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 51
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
 if (-not $fetched.updated_at) { throw "Expected updated_at to be set" }
 Write-Host "✓ updated_at timestamp is set" -ForegroundColor Green
 
-# ── Test 6: Update non-existent ADR should fail ──
-Write-Host "`nTest: Update non-existent ADR should fail" -ForegroundColor Yellow
+# ── Test 6: Update non-existent Decision should fail ──
+Write-Host "`nTest: Update non-existent Decision should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 6
     method = 'tools/call'
     params = @{
-        name = 'adr_update'
+        name = 'decision_update'
         arguments = @{
-            adr_id = 'adr-999'
+            decision_id = 'dec-00000999'
             title = 'Should not work'
         }
     }
@@ -221,4 +221,4 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'not found') {
     throw "Expected 'not found' error, got: $errorMsg"
 }
-Write-Host "✓ Non-existent ADR correctly returns error" -ForegroundColor Green
+Write-Host "✓ Non-existent Decision correctly returns error" -ForegroundColor Green

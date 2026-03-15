@@ -32,13 +32,13 @@ function escapeAttr(text) {
 }
 
 /**
- * Validate that a string matches the expected ADR ID pattern (adr-NNN).
+ * Validate that a string matches the expected decision ID pattern (dec-XXXXXXXX).
  * Use before passing IDs into DOM operations or API calls.
  * @param {string} id - Value to validate
- * @returns {boolean} True if valid ADR ID format
+ * @returns {boolean} True if valid decision ID format
  */
-function isValidAdrId(id) {
-    return typeof id === 'string' && /^adr-\d{3,}$/.test(id);
+function isValidDecisionId(id) {
+    return typeof id === 'string' && /^dec-[a-f0-9]{8}$/.test(id);
 }
 
 /**

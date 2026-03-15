@@ -26,43 +26,43 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create a proposed ADR ──
-Write-Host "Setup: Creating proposed ADR for acceptance test" -ForegroundColor DarkGray
+# ── Setup: Create a proposed Decision ──
+Write-Host "Setup: Creating proposed Decision for acceptance test" -ForegroundColor DarkGray
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
-            title = 'Accept Test ADR'
+            title = 'Accept Test Decision'
             context = 'Testing the accept transition.'
-            decision = 'This ADR will be accepted.'
+            decision = 'This Decision will be accepted.'
             status = 'proposed'
         }
     }
 }
 $created = $response.result.content[0].text | ConvertFrom-Json
-$testAdrId = $created.adr_id
-Write-Host "  Created $testAdrId (proposed)" -ForegroundColor DarkGray
+$testDecisionId = $created.decision_id
+Write-Host "  Created $testDecisionId (proposed)" -ForegroundColor DarkGray
 
-# ── Test 1: Accept a proposed ADR ──
-Write-Host "`nTest: Accept a proposed ADR" -ForegroundColor Yellow
+# ── Test 1: Accept a proposed Decision ──
+Write-Host "`nTest: Accept a proposed Decision" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_accepted'
+        name = 'decision_mark_accepted'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
 if ($result.file_path -notlike '*accepted*') { throw "Expected file moved to accepted directory" }
-Write-Host "✓ ADR accepted, file moved to accepted/" -ForegroundColor Green
+Write-Host "✓ Decision accepted, file moved to accepted/" -ForegroundColor Green
 
 # ── Test 2: Verify status updated in frontmatter ──
 Write-Host "`nTest: Verify status is accepted in frontmatter" -ForegroundColor Yellow
@@ -71,42 +71,42 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 2
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
 if ($fetched.status -ne 'accepted') { throw "Expected status=accepted, got $($fetched.status)" }
 Write-Host "✓ Status is accepted" -ForegroundColor Green
 
-# ── Test 3: Accept already-accepted ADR is idempotent ──
-Write-Host "`nTest: Accept already-accepted ADR" -ForegroundColor Yellow
+# ── Test 3: Accept already-accepted Decision is idempotent ──
+Write-Host "`nTest: Accept already-accepted Decision" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 3
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_accepted'
+        name = 'decision_mark_accepted'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true for idempotent accept" }
 if ($result.message -notmatch 'already accepted') { throw "Expected 'already accepted' message" }
-Write-Host "✓ Already-accepted ADR handled gracefully" -ForegroundColor Green
+Write-Host "✓ Already-accepted Decision handled gracefully" -ForegroundColor Green
 
-# ── Test 4: Accept non-existent ADR should fail ──
-Write-Host "`nTest: Accept non-existent ADR should fail" -ForegroundColor Yellow
+# ── Test 4: Accept non-existent Decision should fail ──
+Write-Host "`nTest: Accept non-existent Decision should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 4
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_accepted'
+        name = 'decision_mark_accepted'
         arguments = @{
-            adr_id = 'adr-999'
+            decision_id = 'dec-00000999'
         }
     }
 }
@@ -114,7 +114,7 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'not found') {
     throw "Expected 'not found' error, got: $errorMsg"
 }
-Write-Host "✓ Non-existent ADR correctly returns error" -ForegroundColor Green
+Write-Host "✓ Non-existent Decision correctly returns error" -ForegroundColor Green
 
 # ── Test 5: Original file no longer exists in proposed/ ──
 Write-Host "`nTest: Original file removed from proposed/" -ForegroundColor Yellow

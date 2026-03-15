@@ -26,15 +26,15 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create two ADRs (one to supersede, one as replacement) ──
-Write-Host "Setup: Creating ADRs for supersede test" -ForegroundColor DarkGray
+# ── Setup: Create two Decisions (one to supersede, one as replacement) ──
+Write-Host "Setup: Creating Decisions for supersede test" -ForegroundColor DarkGray
 
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = 'Old Decision'
             context = 'This will be superseded.'
@@ -43,7 +43,7 @@ $response = Send-McpRequest -Process $Process -Request @{
         }
     }
 }
-$oldId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$oldId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 $oldFilePath = ($response.result.content[0].text | ConvertFrom-Json).file_path
 Write-Host "  Created old: $oldId (proposed)" -ForegroundColor DarkGray
 
@@ -52,7 +52,7 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 101
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = 'New Decision'
             context = 'This replaces the old decision.'
@@ -61,19 +61,19 @@ $response = Send-McpRequest -Process $Process -Request @{
         }
     }
 }
-$newId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$newId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 Write-Host "  Created new: $newId (accepted)" -ForegroundColor DarkGray
 
-# ── Test 1: Supersede a proposed ADR ──
-Write-Host "`nTest: Supersede a proposed ADR" -ForegroundColor Yellow
+# ── Test 1: Supersede a proposed Decision ──
+Write-Host "`nTest: Supersede a proposed Decision" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_superseded'
+        name = 'decision_mark_superseded'
         arguments = @{
-            adr_id = $oldId
+            decision_id = $oldId
             superseded_by = $newId
         }
     }
@@ -82,7 +82,7 @@ $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
 if ($result.file_path -notlike '*superseded*') { throw "Expected file moved to superseded directory" }
 if ($result.superseded_by -ne $newId) { throw "Expected superseded_by=$newId" }
-Write-Host "✓ ADR superseded, file moved to superseded/" -ForegroundColor Green
+Write-Host "✓ Decision superseded, file moved to superseded/" -ForegroundColor Green
 
 # ── Test 2: Verify status and superseded_by in frontmatter ──
 Write-Host "`nTest: Verify superseded status and superseded_by field" -ForegroundColor Yellow
@@ -91,8 +91,8 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 2
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $oldId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $oldId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
@@ -107,14 +107,14 @@ if (Test-Path $oldFilePath) {
 }
 Write-Host "✓ Original file cleaned up" -ForegroundColor Green
 
-# ── Test 4: Supersede an accepted ADR ──
-Write-Host "`nTest: Supersede an accepted ADR" -ForegroundColor Yellow
+# ── Test 4: Supersede an accepted Decision ──
+Write-Host "`nTest: Supersede an accepted Decision" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 102
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = 'Accepted To Supersede'
             context = 'Will be accepted then superseded.'
@@ -123,23 +123,23 @@ $response = Send-McpRequest -Process $Process -Request @{
         }
     }
 }
-$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 41
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_superseded'
+        name = 'decision_mark_superseded'
         arguments = @{
-            adr_id = $acceptedId
+            decision_id = $acceptedId
             superseded_by = $newId
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
-Write-Host "✓ Accepted ADR superseded successfully" -ForegroundColor Green
+Write-Host "✓ Accepted Decision superseded successfully" -ForegroundColor Green
 
 # ── Test 5: Supersede without superseded_by should fail ──
 Write-Host "`nTest: Supersede without superseded_by should fail" -ForegroundColor Yellow
@@ -148,9 +148,9 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 5
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_superseded'
+        name = 'decision_mark_superseded'
         arguments = @{
-            adr_id = 'adr-001'
+            decision_id = 'dec-00000001'
         }
     }
 }
@@ -160,17 +160,17 @@ if ($errorMsg -notmatch 'required') {
 }
 Write-Host "✓ Missing superseded_by correctly rejected" -ForegroundColor Green
 
-# ── Test 6: Supersede non-existent ADR should fail ──
-Write-Host "`nTest: Supersede non-existent ADR should fail" -ForegroundColor Yellow
+# ── Test 6: Supersede non-existent Decision should fail ──
+Write-Host "`nTest: Supersede non-existent Decision should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 6
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_superseded'
+        name = 'decision_mark_superseded'
         arguments = @{
-            adr_id = 'adr-999'
-            superseded_by = 'adr-001'
+            decision_id = 'dec-00000999'
+            superseded_by = 'dec-00000001'
         }
     }
 }
@@ -178,4 +178,4 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'not found') {
     throw "Expected 'not found' error, got: $errorMsg"
 }
-Write-Host "✓ Non-existent ADR correctly returns error" -ForegroundColor Green
+Write-Host "✓ Non-existent Decision correctly returns error" -ForegroundColor Green

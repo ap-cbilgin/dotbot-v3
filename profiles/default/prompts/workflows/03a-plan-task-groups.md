@@ -22,11 +22,11 @@ Read every file in `.bot/workspace/product/`:
 - `entity-model.md` — Data model and entity relationships
 - Any other `.md` files present (PRD, change requests, etc.)
 
-Also read accepted ADRs — these constrain valid implementation approaches:
+Also read accepted decisions — these constrain valid implementation approaches:
 ```javascript
-mcp__dotbot__adr_list({ status: "accepted" })
+mcp__dotbot__decision_list({ status: "accepted" })
 ```
-Note each ADR's ID, title, and consequences. When assigning `applicable_adrs` to groups in Step 5, include ADRs whose consequences directly affect that group's implementation choices.
+Note each decision's ID, title, and consequences. When assigning `applicable_decisions` to groups in Step 5, include decisions whose consequences directly affect that group's implementation choices.
 
 ### Step 2: Identify Implementation Groups
 

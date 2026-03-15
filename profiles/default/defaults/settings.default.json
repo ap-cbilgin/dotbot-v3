@@ -56,14 +56,14 @@
         "commit_message": "chore(kickstart): phase 1 — product documents"
       },
       {
-        "id": "generate-adrs",
-        "name": "Generate ADRs",
-        "workflow": "01b-generate-adrs.md",
+        "id": "generate-decisions",
+        "name": "Generate Decisions",
+        "workflow": "01b-generate-decisions.md",
         "required_outputs": [],
         "front_matter_docs": null,
         "post_script": null,
-        "commit_paths": ["workspace/adrs/"],
-        "commit_message": "chore(kickstart): phase 1b — architecture decision records"
+        "commit_paths": ["workspace/decisions/"],
+        "commit_message": "chore(kickstart): phase 1b — architectural decisions"
       },
       {
         "id": "task-groups",

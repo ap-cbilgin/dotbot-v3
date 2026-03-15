@@ -26,69 +26,69 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create ADRs in different states ──
-Write-Host "Setup: Creating test ADRs" -ForegroundColor DarkGray
+# ── Setup: Create Decisions in different states ──
+Write-Host "Setup: Creating test Decisions" -ForegroundColor DarkGray
 
-# Create a proposed ADR
+# Create a proposed Decision
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
-            title = 'List Test - Proposed ADR'
+            title = 'List Test - Proposed Decision'
             context = 'Testing list functionality.'
             decision = 'Created for list test.'
             status = 'proposed'
         }
     }
 }
-$proposedId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$proposedId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 Write-Host "  Created proposed: $proposedId" -ForegroundColor DarkGray
 
-# Create an accepted ADR
+# Create an accepted Decision
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 101
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
-            title = 'List Test - Accepted ADR'
+            title = 'List Test - Accepted Decision'
             context = 'Testing list functionality.'
             decision = 'Created for list test.'
             status = 'accepted'
         }
     }
 }
-$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 Write-Host "  Created accepted: $acceptedId" -ForegroundColor DarkGray
 
-# ── Test 1: List all ADRs ──
-Write-Host "`nTest: List all ADRs" -ForegroundColor Yellow
+# ── Test 1: List all Decisions ──
+Write-Host "`nTest: List all Decisions" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_list'
+        name = 'decision_list'
         arguments = @{}
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
-if ($result.count -lt 2) { throw "Expected at least 2 ADRs, got $($result.count)" }
-Write-Host "✓ Listed $($result.count) ADRs" -ForegroundColor Green
+if ($result.count -lt 2) { throw "Expected at least 2 Decisions, got $($result.count)" }
+Write-Host "✓ Listed $($result.count) Decisions" -ForegroundColor Green
 
-# ── Test 2: List ADRs filtered by status ──
-Write-Host "`nTest: List proposed ADRs only" -ForegroundColor Yellow
+# ── Test 2: List Decisions filtered by status ──
+Write-Host "`nTest: List proposed Decisions only" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 2
     method = 'tools/call'
     params = @{
-        name = 'adr_list'
+        name = 'decision_list'
         arguments = @{
             status = 'proposed'
         }
@@ -96,22 +96,22 @@ $response = Send-McpRequest -Process $Process -Request @{
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
-# All returned ADRs should be proposed
-foreach ($adr in $result.adrs) {
-    if ($adr.status -ne 'proposed') {
-        throw "Expected all ADRs to be proposed, found $($adr.status)"
+# All returned Decisions should be proposed
+foreach ($dec in $result.decisions) {
+    if ($dec.status -ne 'proposed') {
+        throw "Expected all Decisions to be proposed, found $($dec.status)"
     }
 }
-Write-Host "✓ Filtered to $($result.count) proposed ADRs" -ForegroundColor Green
+Write-Host "✓ Filtered to $($result.count) proposed Decisions" -ForegroundColor Green
 
-# ── Test 3: List accepted ADRs ──
-Write-Host "`nTest: List accepted ADRs only" -ForegroundColor Yellow
+# ── Test 3: List accepted Decisions ──
+Write-Host "`nTest: List accepted Decisions only" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 3
     method = 'tools/call'
     params = @{
-        name = 'adr_list'
+        name = 'decision_list'
         arguments = @{
             status = 'accepted'
         }
@@ -119,40 +119,40 @@ $response = Send-McpRequest -Process $Process -Request @{
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
-foreach ($adr in $result.adrs) {
-    if ($adr.status -ne 'accepted') {
-        throw "Expected all ADRs to be accepted, found $($adr.status)"
+foreach ($dec in $result.decisions) {
+    if ($dec.status -ne 'accepted') {
+        throw "Expected all Decisions to be accepted, found $($dec.status)"
     }
 }
-Write-Host "✓ Filtered to $($result.count) accepted ADRs" -ForegroundColor Green
+Write-Host "✓ Filtered to $($result.count) accepted Decisions" -ForegroundColor Green
 
-# ── Test 4: ADRs are sorted by id ──
-Write-Host "`nTest: ADRs are sorted by id" -ForegroundColor Yellow
+# ── Test 4: Decisions are sorted by id ──
+Write-Host "`nTest: Decisions are sorted by id" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 4
     method = 'tools/call'
     params = @{
-        name = 'adr_list'
+        name = 'decision_list'
         arguments = @{}
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
-$ids = @($result.adrs | ForEach-Object { $_.id })
+$ids = @($result.decisions | ForEach-Object { $_.id })
 $sorted = @($ids | Sort-Object)
 for ($i = 0; $i -lt $ids.Count; $i++) {
     if ($ids[$i] -ne $sorted[$i]) {
-        throw "ADRs not sorted by id: expected $($sorted[$i]) at position $i, got $($ids[$i])"
+        throw "Decisions not sorted by id: expected $($sorted[$i]) at position $i, got $($ids[$i])"
     }
 }
-Write-Host "✓ ADRs are sorted by id" -ForegroundColor Green
+Write-Host "✓ Decisions are sorted by id" -ForegroundColor Green
 
-# ── Test 5: Each ADR has expected fields ──
-Write-Host "`nTest: ADR list entries have expected fields" -ForegroundColor Yellow
-$firstAdr = $result.adrs[0]
+# ── Test 5: Each Decision has expected fields ──
+Write-Host "`nTest: Decision list entries have expected fields" -ForegroundColor Yellow
+$firstDec = $result.decisions[0]
 $requiredFields = @('id', 'title', 'status', 'file_path', 'file_name')
 foreach ($field in $requiredFields) {
-    if (-not $firstAdr.PSObject.Properties[$field]) {
+    if (-not $firstDec.PSObject.Properties[$field]) {
         throw "Missing required field: $field"
     }
 }
@@ -160,9 +160,9 @@ Write-Host "✓ All expected fields present" -ForegroundColor Green
 
 # ── Test 6: YAML quoted titles are correctly unquoted in list ──
 Write-Host "`nTest: YAML quoted titles are unquoted in list" -ForegroundColor Yellow
-$matchedAdr = $result.adrs | Where-Object { $_.id -eq $proposedId }
-if ($matchedAdr -and $matchedAdr.title -match "^'") {
-    throw "Title still has YAML quotes: $($matchedAdr.title)"
+$matchedDec = $result.decisions | Where-Object { $_.id -eq $proposedId }
+if ($matchedDec -and $matchedDec.title -match "^'") {
+    throw "Title still has YAML quotes: $($matchedDec.title)"
 }
 Write-Host "✓ Titles correctly unquoted in list" -ForegroundColor Green
 
@@ -173,7 +173,7 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 7
     method = 'tools/call'
     params = @{
-        name = 'adr_list'
+        name = 'decision_list'
         arguments = @{
             status = '..\..\..\'
         }

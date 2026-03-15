@@ -615,12 +615,12 @@
     align-items: flex-start;
 }
 
-/* ADR modal uses smaller textareas than the default task creation form */
-.adr-modal .form-textarea {
+/* Decision modal uses smaller textareas than the default task creation form */
+.decision-modal .form-textarea {
     min-height: 72px;
 }
 
-.adr-modal .form-input {
+.decision-modal .form-input {
     width: 100%;
     padding: 10px 12px;
     background: var(--bezel-dark);
@@ -633,18 +633,18 @@
     box-sizing: border-box;
 }
 
-.adr-modal .form-input:focus {
+.decision-modal .form-input:focus {
     outline: none;
     border-color: var(--color-primary-dim);
     box-shadow: 0 0 0 2px var(--primary-10);
 }
 
-.adr-modal .form-input::placeholder {
+.decision-modal .form-input::placeholder {
     color: var(--label-color);
     opacity: 0.6;
 }
 
-.adr-modal .form-select {
+.decision-modal .form-select {
     width: 100%;
     padding: 10px 12px;
     background: var(--bezel-dark);
@@ -657,7 +657,7 @@
     box-sizing: border-box;
 }
 
-.adr-modal .form-select:focus {
+.decision-modal .form-select:focus {
     outline: none;
     border-color: var(--color-primary-dim);
 }
@@ -1080,15 +1080,15 @@
     color: var(--color-tertiary);
 }
 
-.task-tag.tag-adr {
+.task-tag.tag-decision {
     color: var(--color-warning);
     transition: opacity 0.15s;
 }
-.task-tag.tag-adr:hover {
+.task-tag.tag-decision:hover {
     opacity: 0.75;
 }
-.task-tag.tag-adr-deprecated,
-.task-tag.tag-adr-superseded {
+.task-tag.tag-decision-deprecated,
+.task-tag.tag-decision-superseded {
     opacity: 0.55;
     text-decoration: line-through;
 }

@@ -16,14 +16,14 @@ function initTaskClicks() {
 
     // Delegate for dynamic task lists
     document.addEventListener('click', async (e) => {
-        // Handle ADR link clicks (from Related ADRs tags)
-        const adrLink = e.target.closest('[data-adr-link]');
-        if (adrLink) {
-            const adrId = adrLink.dataset.adrLink;
-            if (adrId && isValidAdrId(adrId)) {
-                switchToTab('adrs');
-                await reloadAdrs();
-                toggleAdrExpand(adrId);
+        // Handle decision link clicks (from Related Decisions tags)
+        const decLink = e.target.closest('[data-decision-link]');
+        if (decLink) {
+            const decisionId = decLink.dataset.decisionLink;
+            if (decisionId && isValidDecisionId(decisionId)) {
+                switchToTab('decisions');
+                await reloadDecisions();
+                toggleDecisionExpand(decisionId);
             }
             return;
         }
@@ -318,17 +318,17 @@ function buildOverviewSection(task) {
         html += `</div></div>`;
     }
 
-    // Related ADRs
-    const validAdrs = Array.isArray(task.applicable_adrs) ? task.applicable_adrs.filter(id => id && isValidAdrId(id)) : [];
-    if (validAdrs.length > 0) {
+    // Related Decisions
+    const validDecisions = Array.isArray(task.applicable_decisions) ? task.applicable_decisions.filter(id => id && isValidDecisionId(id)) : [];
+    if (validDecisions.length > 0) {
         html += `<div class="task-list-section">`;
-        html += `<div class="task-list-header">Related ADRs</div>`;
+        html += `<div class="task-list-header">Related Decisions</div>`;
         html += `<div class="task-tags">`;
-        validAdrs.forEach(adrId => {
-            const adr = typeof getAdrById === 'function' ? getAdrById(adrId) : null;
-            const label = adr ? `${escapeHtml(adrId)}: ${escapeHtml(adr.title)}` : escapeHtml(adrId);
-            const statusClass = adr ? ` tag-adr-${escapeAttr(adr.status)}` : '';
-            html += `<span class="task-tag tag-adr${statusClass}" title="${adr ? escapeAttr(adr.title) : ''}" data-adr-link="${escapeAttr(adrId)}" style="cursor:pointer">${label}</span>`;
+        validDecisions.forEach(decisionId => {
+            const dec = typeof getDecisionById === 'function' ? getDecisionById(decisionId) : null;
+            const label = dec ? `${escapeHtml(decisionId)}: ${escapeHtml(dec.title)}` : escapeHtml(decisionId);
+            const statusClass = dec ? ` tag-decision-${escapeAttr(dec.status)}` : '';
+            html += `<span class="task-tag tag-decision${statusClass}" title="${dec ? escapeAttr(dec.title) : ''}" data-decision-link="${escapeAttr(decisionId)}" style="cursor:pointer">${label}</span>`;
         });
         html += `</div></div>`;
     }

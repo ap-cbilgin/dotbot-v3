@@ -26,36 +26,36 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create a proposed ADR ──
-Write-Host "Setup: Creating proposed ADR for deprecation test" -ForegroundColor DarkGray
+# ── Setup: Create a proposed Decision ──
+Write-Host "Setup: Creating proposed Decision for deprecation test" -ForegroundColor DarkGray
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
-            title = 'Deprecate Test ADR'
+            title = 'Deprecate Test Decision'
             context = 'Testing the deprecation transition.'
-            decision = 'This ADR will be deprecated.'
+            decision = 'This Decision will be deprecated.'
             status = 'proposed'
         }
     }
 }
 $created = $response.result.content[0].text | ConvertFrom-Json
-$testAdrId = $created.adr_id
-Write-Host "  Created $testAdrId (proposed)" -ForegroundColor DarkGray
+$testDecisionId = $created.decision_id
+Write-Host "  Created $testDecisionId (proposed)" -ForegroundColor DarkGray
 
-# ── Test 1: Deprecate a proposed ADR ──
-Write-Host "`nTest: Deprecate a proposed ADR" -ForegroundColor Yellow
+# ── Test 1: Deprecate a proposed Decision ──
+Write-Host "`nTest: Deprecate a proposed Decision" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_deprecated'
+        name = 'decision_mark_deprecated'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
             reason = 'Technology is no longer supported by vendor.'
         }
     }
@@ -63,7 +63,7 @@ $response = Send-McpRequest -Process $Process -Request @{
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
 if ($result.file_path -notlike '*deprecated*') { throw "Expected file moved to deprecated directory" }
-Write-Host "✓ ADR deprecated, file moved to deprecated/" -ForegroundColor Green
+Write-Host "✓ Decision deprecated, file moved to deprecated/" -ForegroundColor Green
 
 # ── Test 2: Verify status and deprecation note ──
 Write-Host "`nTest: Verify deprecated status and deprecation note" -ForegroundColor Yellow
@@ -72,8 +72,8 @@ $response = Send-McpRequest -Process $Process -Request @{
     id = 2
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
-        arguments = @{ adr_id = $testAdrId }
+        name = 'decision_get'
+        arguments = @{ decision_id = $testDecisionId }
     }
 }
 $fetched = $response.result.content[0].text | ConvertFrom-Json
@@ -86,16 +86,16 @@ if ($fetched.sections.'Deprecation Note' -notmatch 'no longer supported') {
 }
 Write-Host "✓ Status is deprecated, deprecation note present" -ForegroundColor Green
 
-# ── Test 3: Deprecate an accepted ADR ──
-Write-Host "`nTest: Deprecate an accepted ADR" -ForegroundColor Yellow
+# ── Test 3: Deprecate an accepted Decision ──
+Write-Host "`nTest: Deprecate an accepted Decision" -ForegroundColor Yellow
 
-# Create accepted ADR
+# Create accepted Decision
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 101
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = 'Accepted Then Deprecated'
             context = 'Will be accepted then deprecated.'
@@ -104,23 +104,23 @@ $response = Send-McpRequest -Process $Process -Request @{
         }
     }
 }
-$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).adr_id
+$acceptedId = ($response.result.content[0].text | ConvertFrom-Json).decision_id
 
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 31
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_deprecated'
+        name = 'decision_mark_deprecated'
         arguments = @{
-            adr_id = $acceptedId
+            decision_id = $acceptedId
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
 if ($result.file_path -notlike '*deprecated*') { throw "Expected file moved to deprecated directory" }
-Write-Host "✓ Accepted ADR deprecated successfully" -ForegroundColor Green
+Write-Host "✓ Accepted Decision deprecated successfully" -ForegroundColor Green
 
 # ── Test 4: Original file removed from source directory ──
 Write-Host "`nTest: Original file removed from proposed/" -ForegroundColor Yellow
@@ -129,16 +129,16 @@ if (Test-Path $created.file_path) {
 }
 Write-Host "✓ Original file cleaned up" -ForegroundColor Green
 
-# ── Test 5: Deprecate non-existent ADR should fail ──
-Write-Host "`nTest: Deprecate non-existent ADR should fail" -ForegroundColor Yellow
+# ── Test 5: Deprecate non-existent Decision should fail ──
+Write-Host "`nTest: Deprecate non-existent Decision should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 5
     method = 'tools/call'
     params = @{
-        name = 'adr_mark_deprecated'
+        name = 'decision_mark_deprecated'
         arguments = @{
-            adr_id = 'adr-999'
+            decision_id = 'dec-00000999'
         }
     }
 }
@@ -146,4 +146,4 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'not found') {
     throw "Expected 'not found' error, got: $errorMsg"
 }
-Write-Host "✓ Non-existent ADR correctly returns error" -ForegroundColor Green
+Write-Host "✓ Non-existent Decision correctly returns error" -ForegroundColor Green

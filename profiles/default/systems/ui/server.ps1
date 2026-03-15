@@ -93,7 +93,7 @@ Import-Module (Join-Path $PSScriptRoot "modules\TaskAPI.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\ProcessAPI.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\StateBuilder.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "modules\NotificationPoller.psm1") -Force
-Import-Module (Join-Path $PSScriptRoot "modules\AdrAPI.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "modules\DecisionAPI.psm1") -Force
 
 # Initialize all domain modules
 Initialize-FileWatchers -BotRoot $botRoot
@@ -107,7 +107,7 @@ Initialize-TaskAPI -BotRoot $botRoot -ProjectRoot $projectRoot
 Initialize-ProcessAPI -ProcessesDir $processesDir -BotRoot $botRoot -ControlDir $controlDir
 Initialize-StateBuilder -BotRoot $botRoot -ControlDir $controlDir -ProcessesDir $processesDir
 Initialize-NotificationPoller -BotRoot $botRoot
-Initialize-AdrAPI -BotRoot $botRoot
+Initialize-DecisionAPI -BotRoot $botRoot
 
 # Request counter for single-line logging
 $script:requestCount = 0
@@ -1436,13 +1436,13 @@ try {
                     break
                 }
 
-                # --- ADR API ---
+                # --- Decision API ---
 
-                "/api/adrs" {
+                "/api/decisions" {
                     $contentType = "application/json; charset=utf-8"
                     if ($method -eq "GET") {
                         $statusFilter = $request.QueryString['status']
-                        $result = Get-AdrList -StatusFilter $statusFilter
+                        $result = Get-DecisionList -StatusFilter $statusFilter
                         if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
                         $content = $result | ConvertTo-Json -Depth 10 -Compress
                     } elseif ($method -eq "POST") {
@@ -1450,7 +1450,7 @@ try {
                             $reader = New-Object System.IO.StreamReader($request.InputStream)
                             $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
                             $reader.Close()
-                            $result = New-Adr -Body $body
+                            $result = New-Decision -Body $body
                             if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
                             $content = $result | ConvertTo-Json -Depth 5 -Compress
                         } catch {
@@ -1464,11 +1464,11 @@ try {
                     break
                 }
 
-                { $_ -like "/api/adrs/*" -and $_ -notlike "/api/adrs/*/status" } {
+                { $_ -like "/api/decisions/*" -and $_ -notlike "/api/decisions/*/status" } {
                     $contentType = "application/json; charset=utf-8"
-                    $adrId = ($url -replace "^/api/adrs/", "").Trim('/')
+                    $decisionId = ($url -replace "^/api/decisions/", "").Trim('/')
                     if ($method -eq "GET") {
-                        $result = Get-AdrDetail -AdrId $adrId
+                        $result = Get-DecisionDetail -DecisionId $decisionId
                         if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
                         $content = $result | ConvertTo-Json -Depth 10 -Compress
                     } elseif ($method -eq "PUT" -or $method -eq "PATCH") {
@@ -1476,7 +1476,7 @@ try {
                             $reader = New-Object System.IO.StreamReader($request.InputStream)
                             $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
                             $reader.Close()
-                            $result = Update-Adr -AdrId $adrId -Body $body
+                            $result = Update-Decision -DecisionId $decisionId -Body $body
                             if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
                             $content = $result | ConvertTo-Json -Depth 5 -Compress
                         } catch {
@@ -1490,11 +1490,11 @@ try {
                     break
                 }
 
-                { $_ -like "/api/adrs/*/status" } {
+                { $_ -like "/api/decisions/*/status" } {
                     $contentType = "application/json; charset=utf-8"
                     if ($method -eq "POST") {
                         try {
-                            $adrId = ($url -replace "^/api/adrs/", "" -replace "/status$", "").Trim('/')
+                            $decisionId = ($url -replace "^/api/decisions/", "" -replace "/status$", "").Trim('/')
                             $reader = New-Object System.IO.StreamReader($request.InputStream)
                             $body = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
                             $reader.Close()
@@ -1505,7 +1505,7 @@ try {
                                 $statusCode = 400
                                 $content = @{ success = $false; error = "Missing 'status' field" } | ConvertTo-Json -Compress
                             } else {
-                                $result = Set-AdrStatus -AdrId $adrId -NewStatus $newStatus -SupersededBy $supersededBy -Reason $reason
+                                $result = Set-DecisionStatus -DecisionId $decisionId -NewStatus $newStatus -SupersededBy $supersededBy -Reason $reason
                                 if ($result._statusCode) { $statusCode = $result._statusCode; $result.Remove('_statusCode') }
                                 $content = $result | ConvertTo-Json -Depth 5 -Compress
                             }

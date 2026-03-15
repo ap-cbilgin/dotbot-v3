@@ -70,7 +70,7 @@ function Invoke-TaskGetContext {
                 dependencies = $taskContent.dependencies
                 applicable_agents = $taskContent.applicable_agents
                 applicable_standards = $taskContent.applicable_standards
-                applicable_adrs = $taskContent.applicable_adrs
+                applicable_decisions = $taskContent.applicable_decisions
             }
         }
     }
@@ -78,61 +78,39 @@ function Invoke-TaskGetContext {
     # Return full analysis context
     $analysis = $taskContent.analysis
 
-    # Resolve ADR content from applicable_adrs list
-    $adrContent = @()
-    $adrIds = @($taskContent.applicable_adrs | Where-Object { $_ -match '^adr-\d{3,}$' })
-    if ($adrIds.Count -gt 0) {
-        $adrsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\adrs"
-        $adrStatuses = @('accepted', 'proposed', 'deprecated', 'superseded')
-        foreach ($adrId in $adrIds) {
-            $adrFound = $false
-            foreach ($statusDir in $adrStatuses) {
-                $dirPath = Join-Path $adrsBaseDir $statusDir
+    # Resolve Decision content from applicable_decisions list
+    $decisionContent = @()
+    $decisionIds = @($taskContent.applicable_decisions | Where-Object { $_ -match '^dec-[a-f0-9]{8}$' })
+    if ($decisionIds.Count -gt 0) {
+        $decisionsBaseDir = Join-Path $global:DotbotProjectRoot ".bot\workspace\decisions"
+        $decisionStatuses = @('accepted', 'proposed', 'deprecated', 'superseded')
+        foreach ($decId in $decisionIds) {
+            $decFound = $false
+            foreach ($statusDir in $decisionStatuses) {
+                $dirPath = Join-Path $decisionsBaseDir $statusDir
                 if (-not (Test-Path $dirPath)) { continue }
-                $files = @(Get-ChildItem -LiteralPath $dirPath -File -ErrorAction SilentlyContinue |
-                    Where-Object { $_.Name -like "$adrId-*.md" -or $_.Name -eq "$adrId.md" })
+                $files = @(Get-ChildItem -LiteralPath $dirPath -Filter "*.json" -File -ErrorAction SilentlyContinue |
+                    Where-Object { $_.BaseName -like "$decId-*" -or $_.BaseName -eq "$decId" })
                 if ($files.Count -gt 0) {
                     try {
-                        $raw = Get-Content -Path $files[0].FullName -Raw
-                        $sections = @{}
-                        $frontmatter = @{}
-                        if ($raw -match '(?s)^---\r?\n(.+?)\r?\n---\r?\n(.*)$') {
-                            $fm = $Matches[1]; $body = $Matches[2].Trim()
-                            foreach ($line in ($fm -split '\r?\n')) {
-                                if ($line -match '^(\w[\w_-]*):\s*(.*)$') {
-                                    $fmVal = $Matches[2].Trim()
-                                    if ($fmVal.Length -ge 2 -and $fmVal[0] -eq "'" -and $fmVal[-1] -eq "'") {
-                                        $fmVal = $fmVal.Substring(1, $fmVal.Length - 2) -replace "''", "'"
-                                    }
-                                    $frontmatter[$Matches[1]] = $fmVal
-                                }
-                            }
-                            $curSection = $null; $curLines = [System.Collections.Generic.List[string]]::new()
-                            foreach ($line in ($body -split '\r?\n')) {
-                                if ($line -match '^## (.+)$') {
-                                    if ($curSection) { $sections[$curSection] = ($curLines -join "`n").Trim() }
-                                    $curSection = $Matches[1].Trim(); $curLines = [System.Collections.Generic.List[string]]::new()
-                                } else { $curLines.Add($line) }
-                            }
-                            if ($curSection) { $sections[$curSection] = ($curLines -join "`n").Trim() }
+                        $decData = Get-Content -Path $files[0].FullName -Raw | ConvertFrom-Json
+                        $decisionContent += @{
+                            id                       = $decId
+                            title                    = $decData.title
+                            status                   = $decData.status
+                            context                  = $decData.context
+                            decision                 = $decData.decision
+                            rationale                = $decData.rationale
+                            consequences             = $decData.consequences
+                            alternatives_considered  = $decData.alternatives_considered
                         }
-                        $adrContent += @{
-                            id                       = $adrId
-                            title                    = $frontmatter['title']
-                            status                   = $statusDir
-                            context                  = $sections['Context']
-                            decision                 = $sections['Decision']
-                            rationale                = $sections['Rationale']
-                            consequences             = $sections['Consequences']
-                            alternatives_considered  = $sections['Alternatives Considered']
-                        }
-                        $adrFound = $true
+                        $decFound = $true
                     } catch { }
                     break
                 }
             }
-            if (-not $adrFound) {
-                $adrContent += @{ id = $adrId; title = $null; status = 'not-found'; context = $null; decision = $null; rationale = $null; consequences = $null; alternatives_considered = $null }
+            if (-not $decFound) {
+                $decisionContent += @{ id = $decId; title = $null; status = 'not-found'; context = $null; decision = $null; rationale = $null; consequences = $null; alternatives_considered = $null }
             }
         }
     }
@@ -158,7 +136,7 @@ function Invoke-TaskGetContext {
             dependencies = $taskContent.dependencies
             applicable_agents = $taskContent.applicable_agents
             applicable_standards = $taskContent.applicable_standards
-            applicable_adrs = $taskContent.applicable_adrs
+            applicable_decisions = $taskContent.applicable_decisions
         }
 
         # Pre-flight analysis
@@ -187,8 +165,8 @@ function Invoke-TaskGetContext {
             # Questions that were resolved
             questions_resolved = $analysis.questions_resolved
 
-            # Applicable ADRs with content
-            adrs = $adrContent
+            # Applicable Decisions with content
+            decisions = $decisionContent
         }
     }
 }

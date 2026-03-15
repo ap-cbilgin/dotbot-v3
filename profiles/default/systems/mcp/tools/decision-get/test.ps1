@@ -26,14 +26,14 @@ function Send-McpRequest {
     return $null
 }
 
-# ── Setup: Create an ADR to test against ──
-Write-Host "Setup: Creating test ADR" -ForegroundColor DarkGray
+# ── Setup: Create a Decision to test against ──
+Write-Host "Setup: Creating test Decision" -ForegroundColor DarkGray
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 100
     method = 'tools/call'
     params = @{
-        name = 'adr_create'
+        name = 'decision_create'
         arguments = @{
             title = "Use Docker: It's the team's choice"
             context = 'Need containerization for deployment.'
@@ -46,27 +46,27 @@ $response = Send-McpRequest -Process $Process -Request @{
     }
 }
 $created = $response.result.content[0].text | ConvertFrom-Json
-$testAdrId = $created.adr_id
-Write-Host "  Created $testAdrId" -ForegroundColor DarkGray
+$testDecisionId = $created.decision_id
+Write-Host "  Created $testDecisionId" -ForegroundColor DarkGray
 
-# ── Test 1: Get ADR by ID ──
-Write-Host "`nTest: Get ADR by ID" -ForegroundColor Yellow
+# ── Test 1: Get Decision by ID ──
+Write-Host "`nTest: Get Decision by ID" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 1
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
+        name = 'decision_get'
         arguments = @{
-            adr_id = $testAdrId
+            decision_id = $testDecisionId
         }
     }
 }
 $result = $response.result.content[0].text | ConvertFrom-Json
 if (-not $result.success) { throw "Expected success=true" }
-if ($result.id -ne $testAdrId) { throw "Expected id=$testAdrId, got $($result.id)" }
+if ($result.id -ne $testDecisionId) { throw "Expected id=$testDecisionId, got $($result.id)" }
 if ($result.status -ne 'proposed') { throw "Expected status=proposed" }
-Write-Host "✓ ADR retrieved successfully" -ForegroundColor Green
+Write-Host "✓ Decision retrieved successfully" -ForegroundColor Green
 
 # ── Test 2: YAML single-quoted title is correctly unquoted on read ──
 Write-Host "`nTest: YAML quoted title is correctly parsed" -ForegroundColor Yellow
@@ -92,16 +92,16 @@ if (-not $result.sections.Consequences) { throw "Expected Consequences section" 
 if (-not $result.sections.'Alternatives Considered') { throw "Expected Alternatives Considered section" }
 Write-Host "✓ All sections parsed correctly" -ForegroundColor Green
 
-# ── Test 5: Get non-existent ADR should fail ──
-Write-Host "`nTest: Get non-existent ADR should fail" -ForegroundColor Yellow
+# ── Test 5: Get non-existent Decision should fail ──
+Write-Host "`nTest: Get non-existent Decision should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 5
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
+        name = 'decision_get'
         arguments = @{
-            adr_id = 'adr-999'
+            decision_id = 'dec-00000999'
         }
     }
 }
@@ -109,16 +109,16 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'not found') {
     throw "Expected 'not found' error, got: $errorMsg"
 }
-Write-Host "✓ Non-existent ADR correctly returns error" -ForegroundColor Green
+Write-Host "✓ Non-existent Decision correctly returns error" -ForegroundColor Green
 
-# ── Test 6: Get ADR without adr_id should fail ──
-Write-Host "`nTest: Get ADR without adr_id should fail" -ForegroundColor Yellow
+# ── Test 6: Get Decision without decision_id should fail ──
+Write-Host "`nTest: Get Decision without decision_id should fail" -ForegroundColor Yellow
 $response = Send-McpRequest -Process $Process -Request @{
     jsonrpc = '2.0'
     id = 6
     method = 'tools/call'
     params = @{
-        name = 'adr_get'
+        name = 'decision_get'
         arguments = @{}
     }
 }
@@ -126,4 +126,4 @@ $errorMsg = if ($response.error) { $response.error.message } else { $response.re
 if ($errorMsg -notmatch 'required') {
     throw "Expected 'required' error, got: $errorMsg"
 }
-Write-Host "✓ Missing adr_id correctly rejected" -ForegroundColor Green
+Write-Host "✓ Missing decision_id correctly rejected" -ForegroundColor Green

@@ -238,7 +238,7 @@ try {
 
         # Check key tools exist
         $toolNames = $listResponse.result.tools | ForEach-Object { $_.name }
-        $expectedTools = @('task_create', 'task_get_next', 'task_mark_in_progress', 'task_mark_done', 'task_list', 'task_get_stats', 'session_initialize', 'adr_create', 'adr_get', 'adr_list', 'adr_update', 'adr_mark_accepted', 'adr_mark_deprecated', 'adr_mark_superseded')
+        $expectedTools = @('task_create', 'task_get_next', 'task_mark_in_progress', 'task_mark_done', 'task_list', 'task_get_stats', 'session_initialize', 'decision_create', 'decision_get', 'decision_list', 'decision_update', 'decision_mark_accepted', 'decision_mark_deprecated', 'decision_mark_superseded')
         foreach ($tool in $expectedTools) {
             Assert-True -Name "Tool '$tool' registered" `
                 -Condition ($tool -in $toolNames) `
@@ -470,180 +470,181 @@ try {
     Write-Host ""
 
     # ═══════════════════════════════════════════════════════════════════
-    # ADR LIFECYCLE
+    # DECISION LIFECYCLE
     # ═══════════════════════════════════════════════════════════════════
 
-    Write-Host "  ADR LIFECYCLE" -ForegroundColor Cyan
+    Write-Host "  DECISION LIFECYCLE" -ForegroundColor Cyan
     Write-Host "  ────────────────────────────────────────────" -ForegroundColor DarkGray
 
-    # Create an ADR
+    # Create a decision
     $requestId++
-    $adrCreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+    $decCreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
         jsonrpc = '2.0'
         id      = $requestId
         method  = 'tools/call'
         params  = @{
-            name      = 'adr_create'
+            name      = 'decision_create'
             arguments = @{
                 title   = 'Use PowerShell for MCP Server'
                 context = 'We need a language for the MCP server implementation'
                 decision = 'Use PowerShell 7+ as the sole implementation language'
-                rationale = 'Team expertise and cross-platform support'
+                type    = 'architecture'
+                impact  = 'high'
                 consequences = 'Limited to PowerShell ecosystem'
             }
         }
     }
 
-    Assert-True -Name "adr_create responds" `
-        -Condition ($null -ne $adrCreateResponse) `
+    Assert-True -Name "decision_create responds" `
+        -Condition ($null -ne $decCreateResponse) `
         -Message "No response"
 
-    $adrId = $null
-    if ($adrCreateResponse -and $adrCreateResponse.result) {
-        $adrText = $adrCreateResponse.result.content[0].text
-        $adrObj = $adrText | ConvertFrom-Json
-        Assert-True -Name "adr_create returns success" `
-            -Condition ($adrObj.success -eq $true) `
-            -Message "success was not true: $adrText"
-        $adrId = $adrObj.adr_id
-        Assert-True -Name "adr_create returns adr_id" `
-            -Condition ($null -ne $adrId -and $adrId.Length -gt 0) `
-            -Message "No adr_id in response"
+    $decId = $null
+    if ($decCreateResponse -and $decCreateResponse.result) {
+        $decText = $decCreateResponse.result.content[0].text
+        $decObj = $decText | ConvertFrom-Json
+        Assert-True -Name "decision_create returns success" `
+            -Condition ($decObj.success -eq $true) `
+            -Message "success was not true: $decText"
+        $decId = $decObj.decision_id
+        Assert-True -Name "decision_create returns decision_id" `
+            -Condition ($null -ne $decId -and $decId.Length -gt 0) `
+            -Message "No decision_id in response"
     }
 
-    # Verify ADR file exists in proposed/
-    if ($adrId) {
-        $proposedDir = Join-Path $botDir "workspace\adrs\proposed"
-        $proposedFiles = Get-ChildItem -Path $proposedDir -Filter "*.md" -ErrorAction SilentlyContinue
-        Assert-True -Name "ADR file created in proposed/" `
+    # Verify decision file exists in proposed/
+    if ($decId) {
+        $proposedDir = Join-Path $botDir "workspace\decisions\proposed"
+        $proposedFiles = Get-ChildItem -Path $proposedDir -Filter "*.json" -ErrorAction SilentlyContinue
+        Assert-True -Name "Decision file created in proposed/" `
             -Condition ($proposedFiles.Count -gt 0) `
-            -Message "No .md files found in proposed/"
+            -Message "No .json files found in proposed/"
     }
 
-    # List ADRs
+    # List decisions
     $requestId++
-    $adrListResponse = Send-McpRequest -Process $mcpProcess -Request @{
+    $decListResponse = Send-McpRequest -Process $mcpProcess -Request @{
         jsonrpc = '2.0'
         id      = $requestId
         method  = 'tools/call'
         params  = @{
-            name      = 'adr_list'
+            name      = 'decision_list'
             arguments = @{}
         }
     }
 
-    Assert-True -Name "adr_list responds" `
-        -Condition ($null -ne $adrListResponse) `
+    Assert-True -Name "decision_list responds" `
+        -Condition ($null -ne $decListResponse) `
         -Message "No response"
 
-    if ($adrListResponse -and $adrListResponse.result) {
-        $adrListText = $adrListResponse.result.content[0].text
-        $adrListObj = $adrListText | ConvertFrom-Json
-        $adrCount = if ($adrListObj.adrs) { $adrListObj.adrs.Count } else { 0 }
-        Assert-True -Name "adr_list shows created ADR" `
-            -Condition ($adrListObj.success -eq $true -and $adrCount -gt 0) `
-            -Message "No ADRs found: $adrListText"
+    if ($decListResponse -and $decListResponse.result) {
+        $decListText = $decListResponse.result.content[0].text
+        $decListObj = $decListText | ConvertFrom-Json
+        $decCount = if ($decListObj.decisions) { $decListObj.decisions.Count } else { 0 }
+        Assert-True -Name "decision_list shows created decision" `
+            -Condition ($decListObj.success -eq $true -and $decCount -gt 0) `
+            -Message "No decisions found: $decListText"
     }
 
-    # Get ADR
-    if ($adrId) {
+    # Get decision
+    if ($decId) {
         $requestId++
-        $adrGetResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        $decGetResponse = Send-McpRequest -Process $mcpProcess -Request @{
             jsonrpc = '2.0'
             id      = $requestId
             method  = 'tools/call'
             params  = @{
-                name      = 'adr_get'
-                arguments = @{ adr_id = $adrId }
+                name      = 'decision_get'
+                arguments = @{ decision_id = $decId }
             }
         }
 
-        Assert-True -Name "adr_get responds" `
-            -Condition ($null -ne $adrGetResponse) `
+        Assert-True -Name "decision_get responds" `
+            -Condition ($null -ne $decGetResponse) `
             -Message "No response"
 
-        if ($adrGetResponse -and $adrGetResponse.result) {
-            $adrGetText = $adrGetResponse.result.content[0].text
-            $adrGetObj = $adrGetText | ConvertFrom-Json
-            Assert-True -Name "adr_get returns success" `
-                -Condition ($adrGetObj.success -eq $true) `
-                -Message "Failed: $adrGetText"
-            Assert-True -Name "adr_get returns correct title" `
-                -Condition ($adrGetObj.title -eq 'Use PowerShell for MCP Server') `
-                -Message "Wrong title: $($adrGetObj.title)"
+        if ($decGetResponse -and $decGetResponse.result) {
+            $decGetText = $decGetResponse.result.content[0].text
+            $decGetObj = $decGetText | ConvertFrom-Json
+            Assert-True -Name "decision_get returns success" `
+                -Condition ($decGetObj.success -eq $true) `
+                -Message "Failed: $decGetText"
+            Assert-True -Name "decision_get returns correct title" `
+                -Condition ($decGetObj.title -eq 'Use PowerShell for MCP Server') `
+                -Message "Wrong title: $($decGetObj.title)"
         }
     }
 
-    # Update ADR
-    if ($adrId) {
+    # Update decision
+    if ($decId) {
         $requestId++
-        $adrUpdateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        $decUpdateResponse = Send-McpRequest -Process $mcpProcess -Request @{
             jsonrpc = '2.0'
             id      = $requestId
             method  = 'tools/call'
             params  = @{
-                name      = 'adr_update'
+                name      = 'decision_update'
                 arguments = @{
-                    adr_id = $adrId
+                    decision_id = $decId
                     consequences = 'Limited to PowerShell ecosystem but mitigated by cross-platform pwsh'
                 }
             }
         }
 
-        Assert-True -Name "adr_update responds" `
-            -Condition ($null -ne $adrUpdateResponse) `
+        Assert-True -Name "decision_update responds" `
+            -Condition ($null -ne $decUpdateResponse) `
             -Message "No response"
 
-        if ($adrUpdateResponse -and $adrUpdateResponse.result) {
-            $adrUpdateText = $adrUpdateResponse.result.content[0].text
-            $adrUpdateObj = $adrUpdateText | ConvertFrom-Json
-            Assert-True -Name "adr_update succeeds" `
-                -Condition ($adrUpdateObj.success -eq $true) `
-                -Message "Failed: $adrUpdateText"
+        if ($decUpdateResponse -and $decUpdateResponse.result) {
+            $decUpdateText = $decUpdateResponse.result.content[0].text
+            $decUpdateObj = $decUpdateText | ConvertFrom-Json
+            Assert-True -Name "decision_update succeeds" `
+                -Condition ($decUpdateObj.success -eq $true) `
+                -Message "Failed: $decUpdateText"
         }
     }
 
     # Mark accepted
-    if ($adrId) {
+    if ($decId) {
         $requestId++
-        $adrAcceptResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        $decAcceptResponse = Send-McpRequest -Process $mcpProcess -Request @{
             jsonrpc = '2.0'
             id      = $requestId
             method  = 'tools/call'
             params  = @{
-                name      = 'adr_mark_accepted'
-                arguments = @{ adr_id = $adrId }
+                name      = 'decision_mark_accepted'
+                arguments = @{ decision_id = $decId }
             }
         }
 
-        Assert-True -Name "adr_mark_accepted responds" `
-            -Condition ($null -ne $adrAcceptResponse) `
+        Assert-True -Name "decision_mark_accepted responds" `
+            -Condition ($null -ne $decAcceptResponse) `
             -Message "No response"
 
-        if ($adrAcceptResponse -and $adrAcceptResponse.result) {
-            $adrAcceptText = $adrAcceptResponse.result.content[0].text
-            $adrAcceptObj = $adrAcceptText | ConvertFrom-Json
-            Assert-True -Name "adr_mark_accepted succeeds" `
-                -Condition ($adrAcceptObj.success -eq $true) `
-                -Message "Failed: $adrAcceptText"
+        if ($decAcceptResponse -and $decAcceptResponse.result) {
+            $decAcceptText = $decAcceptResponse.result.content[0].text
+            $decAcceptObj = $decAcceptText | ConvertFrom-Json
+            Assert-True -Name "decision_mark_accepted succeeds" `
+                -Condition ($decAcceptObj.success -eq $true) `
+                -Message "Failed: $decAcceptText"
         }
 
         # Verify file moved to accepted/
-        $acceptedDir = Join-Path $botDir "workspace\adrs\accepted"
-        $acceptedFiles = Get-ChildItem -Path $acceptedDir -Filter "*.md" -ErrorAction SilentlyContinue
-        Assert-True -Name "ADR file moved to accepted/" `
+        $acceptedDir = Join-Path $botDir "workspace\decisions\accepted"
+        $acceptedFiles = Get-ChildItem -Path $acceptedDir -Filter "*.json" -ErrorAction SilentlyContinue
+        Assert-True -Name "Decision file moved to accepted/" `
             -Condition ($acceptedFiles.Count -gt 0) `
-            -Message "No .md files found in accepted/"
+            -Message "No .json files found in accepted/"
     }
 
-    # Create a second ADR to test superseded
+    # Create a second decision to test superseded
     $requestId++
-    $adr2CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+    $dec2CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
         jsonrpc = '2.0'
         id      = $requestId
         method  = 'tools/call'
         params  = @{
-            name      = 'adr_create'
+            name      = 'decision_create'
             arguments = @{
                 title    = 'Switch to TypeScript for MCP'
                 context  = 'Performance concerns with PowerShell approach'
@@ -653,57 +654,57 @@ try {
         }
     }
 
-    $adr2Id = $null
-    if ($adr2CreateResponse -and $adr2CreateResponse.result) {
-        $adr2Text = $adr2CreateResponse.result.content[0].text
-        $adr2Obj = $adr2Text | ConvertFrom-Json
-        $adr2Id = $adr2Obj.adr_id
+    $dec2Id = $null
+    if ($dec2CreateResponse -and $dec2CreateResponse.result) {
+        $dec2Text = $dec2CreateResponse.result.content[0].text
+        $dec2Obj = $dec2Text | ConvertFrom-Json
+        $dec2Id = $dec2Obj.decision_id
     }
 
-    # Mark first ADR as superseded by second
-    if ($adrId -and $adr2Id) {
+    # Mark first decision as superseded by second
+    if ($decId -and $dec2Id) {
         $requestId++
-        $adrSuperResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        $decSuperResponse = Send-McpRequest -Process $mcpProcess -Request @{
             jsonrpc = '2.0'
             id      = $requestId
             method  = 'tools/call'
             params  = @{
-                name      = 'adr_mark_superseded'
+                name      = 'decision_mark_superseded'
                 arguments = @{
-                    adr_id        = $adrId
-                    superseded_by = $adr2Id
+                    decision_id   = $decId
+                    superseded_by = $dec2Id
                 }
             }
         }
 
-        Assert-True -Name "adr_mark_superseded responds" `
-            -Condition ($null -ne $adrSuperResponse) `
+        Assert-True -Name "decision_mark_superseded responds" `
+            -Condition ($null -ne $decSuperResponse) `
             -Message "No response"
 
-        if ($adrSuperResponse -and $adrSuperResponse.result) {
-            $adrSuperText = $adrSuperResponse.result.content[0].text
-            $adrSuperObj = $adrSuperText | ConvertFrom-Json
-            Assert-True -Name "adr_mark_superseded succeeds" `
-                -Condition ($adrSuperObj.success -eq $true) `
-                -Message "Failed: $adrSuperText"
+        if ($decSuperResponse -and $decSuperResponse.result) {
+            $decSuperText = $decSuperResponse.result.content[0].text
+            $decSuperObj = $decSuperText | ConvertFrom-Json
+            Assert-True -Name "decision_mark_superseded succeeds" `
+                -Condition ($decSuperObj.success -eq $true) `
+                -Message "Failed: $decSuperText"
         }
 
         # Verify file moved to superseded/
-        $supersededDir = Join-Path $botDir "workspace\adrs\superseded"
-        $supersededFiles = Get-ChildItem -Path $supersededDir -Filter "*.md" -ErrorAction SilentlyContinue
-        Assert-True -Name "ADR file moved to superseded/" `
+        $supersededDir = Join-Path $botDir "workspace\decisions\superseded"
+        $supersededFiles = Get-ChildItem -Path $supersededDir -Filter "*.json" -ErrorAction SilentlyContinue
+        Assert-True -Name "Decision file moved to superseded/" `
             -Condition ($supersededFiles.Count -gt 0) `
-            -Message "No .md files found in superseded/"
+            -Message "No .json files found in superseded/"
     }
 
-    # Create a third ADR to test deprecated
+    # Create a third decision to test deprecated
     $requestId++
-    $adr3CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+    $dec3CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
         jsonrpc = '2.0'
         id      = $requestId
         method  = 'tools/call'
         params  = @{
-            name      = 'adr_create'
+            name      = 'decision_create'
             arguments = @{
                 title    = 'Use Redis for Caching'
                 context  = 'Need caching layer for performance'
@@ -713,71 +714,71 @@ try {
         }
     }
 
-    $adr3Id = $null
-    if ($adr3CreateResponse -and $adr3CreateResponse.result) {
-        $adr3Text = $adr3CreateResponse.result.content[0].text
-        $adr3Obj = $adr3Text | ConvertFrom-Json
-        $adr3Id = $adr3Obj.adr_id
+    $dec3Id = $null
+    if ($dec3CreateResponse -and $dec3CreateResponse.result) {
+        $dec3Text = $dec3CreateResponse.result.content[0].text
+        $dec3Obj = $dec3Text | ConvertFrom-Json
+        $dec3Id = $dec3Obj.decision_id
     }
 
     # Mark deprecated
-    if ($adr3Id) {
+    if ($dec3Id) {
         $requestId++
-        $adrDepResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        $decDepResponse = Send-McpRequest -Process $mcpProcess -Request @{
             jsonrpc = '2.0'
             id      = $requestId
             method  = 'tools/call'
             params  = @{
-                name      = 'adr_mark_deprecated'
+                name      = 'decision_mark_deprecated'
                 arguments = @{
-                    adr_id = $adr3Id
+                    decision_id = $dec3Id
                     reason = 'Caching no longer needed after architecture simplification'
                 }
             }
         }
 
-        Assert-True -Name "adr_mark_deprecated responds" `
-            -Condition ($null -ne $adrDepResponse) `
+        Assert-True -Name "decision_mark_deprecated responds" `
+            -Condition ($null -ne $decDepResponse) `
             -Message "No response"
 
-        if ($adrDepResponse -and $adrDepResponse.result) {
-            $adrDepText = $adrDepResponse.result.content[0].text
-            $adrDepObj = $adrDepText | ConvertFrom-Json
-            Assert-True -Name "adr_mark_deprecated succeeds" `
-                -Condition ($adrDepObj.success -eq $true) `
-                -Message "Failed: $adrDepText"
+        if ($decDepResponse -and $decDepResponse.result) {
+            $decDepText = $decDepResponse.result.content[0].text
+            $decDepObj = $decDepText | ConvertFrom-Json
+            Assert-True -Name "decision_mark_deprecated succeeds" `
+                -Condition ($decDepObj.success -eq $true) `
+                -Message "Failed: $decDepText"
         }
 
         # Verify file moved to deprecated/
-        $deprecatedDir = Join-Path $botDir "workspace\adrs\deprecated"
-        $deprecatedFiles = Get-ChildItem -Path $deprecatedDir -Filter "*.md" -ErrorAction SilentlyContinue
-        Assert-True -Name "ADR file moved to deprecated/" `
+        $deprecatedDir = Join-Path $botDir "workspace\decisions\deprecated"
+        $deprecatedFiles = Get-ChildItem -Path $deprecatedDir -Filter "*.json" -ErrorAction SilentlyContinue
+        Assert-True -Name "Decision file moved to deprecated/" `
             -Condition ($deprecatedFiles.Count -gt 0) `
-            -Message "No .md files found in deprecated/"
+            -Message "No .json files found in deprecated/"
     }
 
     # List with status filter
     $requestId++
-    $adrListFilteredResponse = Send-McpRequest -Process $mcpProcess -Request @{
+    $decListFilteredResponse = Send-McpRequest -Process $mcpProcess -Request @{
         jsonrpc = '2.0'
         id      = $requestId
         method  = 'tools/call'
         params  = @{
-            name      = 'adr_list'
+            name      = 'decision_list'
             arguments = @{ status = 'accepted' }
         }
     }
 
-    Assert-True -Name "adr_list with status filter responds" `
-        -Condition ($null -ne $adrListFilteredResponse) `
+    Assert-True -Name "decision_list with status filter responds" `
+        -Condition ($null -ne $decListFilteredResponse) `
         -Message "No response"
 
-    if ($adrListFilteredResponse -and $adrListFilteredResponse.result) {
-        $adrFilterText = $adrListFilteredResponse.result.content[0].text
-        $adrFilterObj = $adrFilterText | ConvertFrom-Json
-        Assert-True -Name "adr_list filters by status" `
-            -Condition ($adrFilterObj.success -eq $true) `
-            -Message "Failed: $adrFilterText"
+    if ($decListFilteredResponse -and $decListFilteredResponse.result) {
+        $decFilterText = $decListFilteredResponse.result.content[0].text
+        $decFilterObj = $decFilterText | ConvertFrom-Json
+        Assert-True -Name "decision_list filters by status" `
+            -Condition ($decFilterObj.success -eq $true) `
+            -Message "Failed: $decFilterText"
     }
 
     Write-Host ""

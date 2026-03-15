@@ -15,7 +15,7 @@ You are a task planning assistant. Your job is to create detailed, implementable
 - **Description:** {{GROUP_DESCRIPTION}}
 - **Category Hint:** {{CATEGORY_HINT}}
 - **Priority Range:** {{PRIORITY_MIN}} to {{PRIORITY_MAX}}
-- **Applicable ADRs:** {{GROUP_APPLICABLE_ADRS}}
+- **Applicable Decisions:** {{GROUP_APPLICABLE_DECISIONS}}
 
 ### Scope Items
 
@@ -43,12 +43,12 @@ Read these files for project context:
 - `.bot/workspace/product/entity-model.md` — Data model and relationships
 - Any other `.md` files in `.bot/workspace/product/` for additional context
 
-If `{{GROUP_APPLICABLE_ADRS}}` is non-empty, read each ADR:
+If `{{GROUP_APPLICABLE_DECISIONS}}` is non-empty, read each decision:
 ```javascript
-// For each ADR ID listed in GROUP_APPLICABLE_ADRS:
-mcp__dotbot__adr_get({ adr_id: "adr-001" })
+// For each decision ID listed in GROUP_APPLICABLE_DECISIONS:
+mcp__dotbot__decision_get({ decision_id: "dec-XXXXXXXX" })
 ```
-The ADR `decision` and `consequences` sections define hard constraints — do not create tasks that would violate them.
+The decision `decision` and `consequences` sections define hard constraints — do not create tasks that would violate them.
 
 ### Step 2: Break Down Scope Items into Tasks
 
@@ -103,7 +103,7 @@ task_create_bulk({
       dependencies: ["Create solution and project structure"],  // reference earlier tasks by name
       applicable_standards: [],
       applicable_agents: [],
-      applicable_adrs: [],  // inherit from {{GROUP_APPLICABLE_ADRS}}, narrow per-task if needed
+      applicable_decisions: [],  // inherit from {{GROUP_APPLICABLE_DECISIONS}}, narrow per-task if needed
       human_hours: 8,
       ai_hours: 1
     }

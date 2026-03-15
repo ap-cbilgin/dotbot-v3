@@ -66,9 +66,9 @@ function switchContextPanel(tabId) {
         updateTaskSummary(lastState.tasks);
     }
 
-    // Reload ADRs when switching to ADRs tab
-    if (tabId === 'adrs') {
-        reloadAdrs();
+    // Reload decisions when switching to decisions tab
+    if (tabId === 'decisions') {
+        reloadDecisions();
     }
 
     // Update product file nav when switching to product tab
