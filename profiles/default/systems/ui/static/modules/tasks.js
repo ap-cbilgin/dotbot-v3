@@ -15,13 +15,14 @@ function initTaskClicks() {
     });
 
     // Delegate for dynamic task lists
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         // Handle ADR link clicks (from Related ADRs tags)
         const adrLink = e.target.closest('[data-adr-link]');
         if (adrLink) {
             const adrId = adrLink.dataset.adrLink;
             if (adrId && isValidAdrId(adrId)) {
                 switchToTab('adrs');
+                await reloadAdrs();
                 toggleAdrExpand(adrId);
             }
             return;

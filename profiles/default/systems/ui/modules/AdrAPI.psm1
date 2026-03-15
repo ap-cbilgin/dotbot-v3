@@ -212,7 +212,7 @@ function New-Adr {
         $dp = Join-Path $base $d
         if (-not (Test-Path $dp)) { continue }
         Get-ChildItem -Path $dp -Filter "adr-*.md" -File -ErrorAction SilentlyContinue | ForEach-Object {
-            if ($_.Name -match '^adr-(\d+)-') { $n = [int]$Matches[1]; if ($n -gt $maxNum) { $maxNum = $n } }
+            if ($_.Name -match '^adr-(\d+)(?=\D)') { $n = [int]$Matches[1]; if ($n -gt $maxNum) { $maxNum = $n } }
         }
     }
     $id   = "adr-{0:D3}" -f ($maxNum + 1)

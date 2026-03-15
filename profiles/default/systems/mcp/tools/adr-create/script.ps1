@@ -35,7 +35,7 @@ function Invoke-AdrCreate {
         if (Test-Path $dirPath) {
             $files = Get-ChildItem -Path $dirPath -Filter "adr-*.md" -File -ErrorAction SilentlyContinue
             foreach ($f in $files) {
-                if ($f.Name -match '^adr-(\d+)-') {
+                if ($f.Name -match '^adr-(\d+)(?=\D)') {
                     $num = [int]$Matches[1]
                     if ($num -gt $maxNum) { $maxNum = $num }
                 }

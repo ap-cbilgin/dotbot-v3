@@ -348,7 +348,7 @@ function Get-BotState {
                         roadmap_dependencies = Get-RoadmapTaskDependencies -Task $taskContent -DependencyMap $roadmapDependencyMap
                         applicable_agents = $taskContent.applicable_agents
                         applicable_standards = $taskContent.applicable_standards
-                        applicable_adrs = $taskContent.applicable_adrs
+                        applicable_adrs = @($taskContent.applicable_adrs | Where-Object { $_ })
                         plan_path = $taskContent.plan_path
                         created_at = $taskContent.created_at
                         updated_at = $taskContent.updated_at
@@ -378,7 +378,7 @@ function Get-BotState {
                     roadmap_dependencies = $_.roadmap_dependencies
                     applicable_agents = $_.applicable_agents
                     applicable_standards = $_.applicable_standards
-                    applicable_adrs = $_.applicable_adrs
+                    applicable_adrs = @($_.applicable_adrs | Where-Object { $_ })
                     plan_path = $_.plan_path
                     created_at = $_.created_at
                     updated_at = $_.updated_at
