@@ -153,7 +153,7 @@ function Get-BotState {
             dependencies = @($taskContent.dependencies)
             applicable_agents = @($taskContent.applicable_agents)
             applicable_standards = @($taskContent.applicable_standards)
-            applicable_adrs = @($taskContent.applicable_adrs)
+            applicable_adrs = @($taskContent.applicable_adrs | Where-Object { $_ })
             plan_path = $taskContent.plan_path
             created_at = $taskContent.created_at
             updated_at = $taskContent.updated_at
@@ -186,7 +186,7 @@ function Get-BotState {
                         dependencies = @($taskContent.dependencies)
                         applicable_agents = @($taskContent.applicable_agents)
                         applicable_standards = @($taskContent.applicable_standards)
-                        applicable_adrs = @($taskContent.applicable_adrs)
+                        applicable_adrs = @($taskContent.applicable_adrs | Where-Object { $_ })
                         plan_path = $taskContent.plan_path
                         created_at = $taskContent.created_at
                         updated_at = $taskContent.updated_at
@@ -234,7 +234,7 @@ function Get-BotState {
                         dependencies = @($taskContent.dependencies)
                         applicable_agents = @($taskContent.applicable_agents)
                         applicable_standards = @($taskContent.applicable_standards)
-                        applicable_adrs = @($taskContent.applicable_adrs)
+                        applicable_adrs = @($taskContent.applicable_adrs | Where-Object { $_ })
                         analysis = $taskContent.analysis
                         questions_resolved = $taskContent.questions_resolved
                         analysis_started_at = $taskContent.analysis_started_at

@@ -318,12 +318,12 @@ function buildOverviewSection(task) {
     }
 
     // Related ADRs
-    if (Array.isArray(task.applicable_adrs) && task.applicable_adrs.length > 0) {
+    const validAdrs = Array.isArray(task.applicable_adrs) ? task.applicable_adrs.filter(id => id && isValidAdrId(id)) : [];
+    if (validAdrs.length > 0) {
         html += `<div class="task-list-section">`;
         html += `<div class="task-list-header">Related ADRs</div>`;
         html += `<div class="task-tags">`;
-        task.applicable_adrs.forEach(adrId => {
-            if (!adrId || !isValidAdrId(adrId)) return;
+        validAdrs.forEach(adrId => {
             const adr = typeof getAdrById === 'function' ? getAdrById(adrId) : null;
             const label = adr ? `${escapeHtml(adrId)}: ${escapeHtml(adr.title)}` : escapeHtml(adrId);
             const statusClass = adr ? ` tag-adr-${escapeAttr(adr.status)}` : '';
