@@ -1,0 +1,25 @@
+tests/Test-Components.ps1
+  26b9b49eb6dfb76e 241,473-785
+scripts/install-global.ps1
+  26b9b49eb6dfb76e 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "9f3e62300834fd7b33120d18e679d3ac752e661f",
+  "prompts": {
+    "26b9b49eb6dfb76e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f6df39b1-9080-40e0-8a0a-0a501a420474",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Can Bilgin <can.bilgin@authoritypartners.com>",
+      "messages": [],
+      "total_additions": 2018,
+      "total_deletions": 1705,
+      "accepted_lines": 1788,
+      "overriden_lines": 0
+    }
+  }
+}
