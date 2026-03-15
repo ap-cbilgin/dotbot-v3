@@ -355,14 +355,28 @@ function Set-AdrStatus {
         return @{ _statusCode = 404; success = $false; error = "ADR '$AdrId' not found in proposed or accepted" }
     }
 
+    # Idempotency: already at target status — no file move needed
+    if ($found.status -eq $NewStatus) {
+        return @{ success = $true; adr_id = $AdrId; status = $NewStatus; file_path = $found.file.FullName; message = "ADR '$AdrId' is already $NewStatus" }
+    }
+
     $now = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
     $raw = Get-Content -Path $found.file.FullName -Raw
-    $raw = $raw -replace '(?m)^status:.*$',     "status: $NewStatus"
-    $raw = $raw -replace '(?m)^updated_at:.*$', "updated_at: $now"
 
-    if ($NewStatus -eq 'superseded' -and $SupersededBy) {
-        $raw = $raw -replace '(?m)^superseded_by:.*$', "superseded_by: $SupersededBy"
+    # Update only frontmatter, not the body
+    if ($raw -match '(?s)^(---\r?\n)(.+?\r?\n)(---\r?\n)(.*)$') {
+        $fmOpen  = $Matches[1]
+        $fm      = $Matches[2]
+        $fmClose = $Matches[3]
+        $body    = $Matches[4]
+        $fm = $fm -replace '(?m)^status:.*$',     "status: $NewStatus"
+        $fm = $fm -replace '(?m)^updated_at:.*$', "updated_at: $now"
+        if ($NewStatus -eq 'superseded' -and $SupersededBy) {
+            $fm = $fm -replace '(?m)^superseded_by:.*$', "superseded_by: $SupersededBy"
+        }
+        $raw = $fmOpen + $fm + $fmClose + $body
     }
+
     if ($Reason) {
         $raw = $raw.TrimEnd() + "`n`n## Deprecation Note`n`n$Reason`n"
     }

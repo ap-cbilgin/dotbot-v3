@@ -24,8 +24,17 @@ function Invoke-AdrMarkDeprecated {
 
     $now = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
     $raw = Get-Content -Path $found.file.FullName -Raw
-    $raw = $raw -replace '(?m)^status:.*$',     'status: deprecated'
-    $raw = $raw -replace '(?m)^updated_at:.*$', "updated_at: $now"
+
+    # Update only frontmatter, not the body
+    if ($raw -match '(?s)^(---\r?\n)(.+?\r?\n)(---\r?\n)(.*)$') {
+        $fmOpen  = $Matches[1]
+        $fm      = $Matches[2]
+        $fmClose = $Matches[3]
+        $body    = $Matches[4]
+        $fm = $fm -replace '(?m)^status:.*$',     'status: deprecated'
+        $fm = $fm -replace '(?m)^updated_at:.*$', "updated_at: $now"
+        $raw = $fmOpen + $fm + $fmClose + $body
+    }
 
     if ($reason) {
         # Append deprecation note to body

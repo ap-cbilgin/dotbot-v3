@@ -26,9 +26,18 @@ function Invoke-AdrMarkSuperseded {
 
     $now = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
     $raw = Get-Content -Path $found.file.FullName -Raw
-    $raw = $raw -replace '(?m)^status:.*$',        'status: superseded'
-    $raw = $raw -replace '(?m)^updated_at:.*$',    "updated_at: $now"
-    $raw = $raw -replace '(?m)^superseded_by:.*$', "superseded_by: $supersededBy"
+
+    # Update only frontmatter, not the body
+    if ($raw -match '(?s)^(---\r?\n)(.+?\r?\n)(---\r?\n)(.*)$') {
+        $fmOpen  = $Matches[1]
+        $fm      = $Matches[2]
+        $fmClose = $Matches[3]
+        $body    = $Matches[4]
+        $fm = $fm -replace '(?m)^status:.*$',        'status: superseded'
+        $fm = $fm -replace '(?m)^updated_at:.*$',    "updated_at: $now"
+        $fm = $fm -replace '(?m)^superseded_by:.*$', "superseded_by: $supersededBy"
+        $raw = $fmOpen + $fm + $fmClose + $body
+    }
 
     $targetDir = Join-Path $adrsBaseDir "superseded"
     if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Force -Path $targetDir | Out-Null }
