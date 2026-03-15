@@ -1,0 +1,27 @@
+profiles/default/systems/ui/static/modules/tasks.js
+  26b9b49eb6dfb76e 18,25
+profiles/default/systems/mcp/tools/adr-create/script.ps1
+  26b9b49eb6dfb76e 38
+profiles/default/systems/ui/modules/StateBuilder.psm1
+  26b9b49eb6dfb76e 351,381
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "347939b00450632cfbf30cf32a9374970465fabc",
+  "prompts": {
+    "26b9b49eb6dfb76e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f6df39b1-9080-40e0-8a0a-0a501a420474",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Can Bilgin <can.bilgin@authoritypartners.com>",
+      "messages": [],
+      "total_additions": 1667,
+      "total_deletions": 1666,
+      "accepted_lines": 392,
+      "overriden_lines": 0
+    }
+  }
+}
