@@ -42,7 +42,7 @@ if ($resolvedBase -and ($resolvedSource -eq $resolvedBase)) {
         }
         
         # Copy all files except .git
-        $itemsToCopy = Get-ChildItem -Path $SourceDir -Exclude ".git"
+        $itemsToCopy = Get-ChildItem -Path $SourceDir -Exclude ".git", ".vs"
         
         foreach ($item in $itemsToCopy) {
             $dest = Join-Path $BaseDir $item.Name

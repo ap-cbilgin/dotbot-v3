@@ -238,7 +238,7 @@ try {
 
         # Check key tools exist
         $toolNames = $listResponse.result.tools | ForEach-Object { $_.name }
-        $expectedTools = @('task_create', 'task_get_next', 'task_mark_in_progress', 'task_mark_done', 'task_list', 'task_get_stats', 'session_initialize')
+        $expectedTools = @('task_create', 'task_get_next', 'task_mark_in_progress', 'task_mark_done', 'task_list', 'task_get_stats', 'session_initialize', 'adr_create', 'adr_get', 'adr_list', 'adr_update', 'adr_mark_accepted', 'adr_mark_deprecated', 'adr_mark_superseded')
         foreach ($tool in $expectedTools) {
             Assert-True -Name "Tool '$tool' registered" `
                 -Condition ($tool -in $toolNames) `
@@ -465,6 +465,319 @@ try {
         Assert-True -Name "task_get_stats returns counts" `
             -Condition ($statsObj.success -eq $true -and $null -ne $statsObj.total_tasks) `
             -Message "No count data: $statsText"
+    }
+
+    Write-Host ""
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ADR LIFECYCLE
+    # ═══════════════════════════════════════════════════════════════════
+
+    Write-Host "  ADR LIFECYCLE" -ForegroundColor Cyan
+    Write-Host "  ────────────────────────────────────────────" -ForegroundColor DarkGray
+
+    # Create an ADR
+    $requestId++
+    $adrCreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        jsonrpc = '2.0'
+        id      = $requestId
+        method  = 'tools/call'
+        params  = @{
+            name      = 'adr_create'
+            arguments = @{
+                title   = 'Use PowerShell for MCP Server'
+                context = 'We need a language for the MCP server implementation'
+                decision = 'Use PowerShell 7+ as the sole implementation language'
+                rationale = 'Team expertise and cross-platform support'
+                consequences = 'Limited to PowerShell ecosystem'
+            }
+        }
+    }
+
+    Assert-True -Name "adr_create responds" `
+        -Condition ($null -ne $adrCreateResponse) `
+        -Message "No response"
+
+    $adrId = $null
+    if ($adrCreateResponse -and $adrCreateResponse.result) {
+        $adrText = $adrCreateResponse.result.content[0].text
+        $adrObj = $adrText | ConvertFrom-Json
+        Assert-True -Name "adr_create returns success" `
+            -Condition ($adrObj.success -eq $true) `
+            -Message "success was not true: $adrText"
+        $adrId = $adrObj.adr_id
+        Assert-True -Name "adr_create returns adr_id" `
+            -Condition ($null -ne $adrId -and $adrId.Length -gt 0) `
+            -Message "No adr_id in response"
+    }
+
+    # Verify ADR file exists in proposed/
+    if ($adrId) {
+        $proposedDir = Join-Path $botDir "workspace\adrs\proposed"
+        $proposedFiles = Get-ChildItem -Path $proposedDir -Filter "*.md" -ErrorAction SilentlyContinue
+        Assert-True -Name "ADR file created in proposed/" `
+            -Condition ($proposedFiles.Count -gt 0) `
+            -Message "No .md files found in proposed/"
+    }
+
+    # List ADRs
+    $requestId++
+    $adrListResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        jsonrpc = '2.0'
+        id      = $requestId
+        method  = 'tools/call'
+        params  = @{
+            name      = 'adr_list'
+            arguments = @{}
+        }
+    }
+
+    Assert-True -Name "adr_list responds" `
+        -Condition ($null -ne $adrListResponse) `
+        -Message "No response"
+
+    if ($adrListResponse -and $adrListResponse.result) {
+        $adrListText = $adrListResponse.result.content[0].text
+        $adrListObj = $adrListText | ConvertFrom-Json
+        $adrCount = if ($adrListObj.adrs) { $adrListObj.adrs.Count } else { 0 }
+        Assert-True -Name "adr_list shows created ADR" `
+            -Condition ($adrListObj.success -eq $true -and $adrCount -gt 0) `
+            -Message "No ADRs found: $adrListText"
+    }
+
+    # Get ADR
+    if ($adrId) {
+        $requestId++
+        $adrGetResponse = Send-McpRequest -Process $mcpProcess -Request @{
+            jsonrpc = '2.0'
+            id      = $requestId
+            method  = 'tools/call'
+            params  = @{
+                name      = 'adr_get'
+                arguments = @{ adr_id = $adrId }
+            }
+        }
+
+        Assert-True -Name "adr_get responds" `
+            -Condition ($null -ne $adrGetResponse) `
+            -Message "No response"
+
+        if ($adrGetResponse -and $adrGetResponse.result) {
+            $adrGetText = $adrGetResponse.result.content[0].text
+            $adrGetObj = $adrGetText | ConvertFrom-Json
+            Assert-True -Name "adr_get returns success" `
+                -Condition ($adrGetObj.success -eq $true) `
+                -Message "Failed: $adrGetText"
+            Assert-True -Name "adr_get returns correct title" `
+                -Condition ($adrGetObj.title -eq 'Use PowerShell for MCP Server') `
+                -Message "Wrong title: $($adrGetObj.title)"
+        }
+    }
+
+    # Update ADR
+    if ($adrId) {
+        $requestId++
+        $adrUpdateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+            jsonrpc = '2.0'
+            id      = $requestId
+            method  = 'tools/call'
+            params  = @{
+                name      = 'adr_update'
+                arguments = @{
+                    adr_id = $adrId
+                    consequences = 'Limited to PowerShell ecosystem but mitigated by cross-platform pwsh'
+                }
+            }
+        }
+
+        Assert-True -Name "adr_update responds" `
+            -Condition ($null -ne $adrUpdateResponse) `
+            -Message "No response"
+
+        if ($adrUpdateResponse -and $adrUpdateResponse.result) {
+            $adrUpdateText = $adrUpdateResponse.result.content[0].text
+            $adrUpdateObj = $adrUpdateText | ConvertFrom-Json
+            Assert-True -Name "adr_update succeeds" `
+                -Condition ($adrUpdateObj.success -eq $true) `
+                -Message "Failed: $adrUpdateText"
+        }
+    }
+
+    # Mark accepted
+    if ($adrId) {
+        $requestId++
+        $adrAcceptResponse = Send-McpRequest -Process $mcpProcess -Request @{
+            jsonrpc = '2.0'
+            id      = $requestId
+            method  = 'tools/call'
+            params  = @{
+                name      = 'adr_mark_accepted'
+                arguments = @{ adr_id = $adrId }
+            }
+        }
+
+        Assert-True -Name "adr_mark_accepted responds" `
+            -Condition ($null -ne $adrAcceptResponse) `
+            -Message "No response"
+
+        if ($adrAcceptResponse -and $adrAcceptResponse.result) {
+            $adrAcceptText = $adrAcceptResponse.result.content[0].text
+            $adrAcceptObj = $adrAcceptText | ConvertFrom-Json
+            Assert-True -Name "adr_mark_accepted succeeds" `
+                -Condition ($adrAcceptObj.success -eq $true) `
+                -Message "Failed: $adrAcceptText"
+        }
+
+        # Verify file moved to accepted/
+        $acceptedDir = Join-Path $botDir "workspace\adrs\accepted"
+        $acceptedFiles = Get-ChildItem -Path $acceptedDir -Filter "*.md" -ErrorAction SilentlyContinue
+        Assert-True -Name "ADR file moved to accepted/" `
+            -Condition ($acceptedFiles.Count -gt 0) `
+            -Message "No .md files found in accepted/"
+    }
+
+    # Create a second ADR to test superseded
+    $requestId++
+    $adr2CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        jsonrpc = '2.0'
+        id      = $requestId
+        method  = 'tools/call'
+        params  = @{
+            name      = 'adr_create'
+            arguments = @{
+                title    = 'Switch to TypeScript for MCP'
+                context  = 'Performance concerns with PowerShell approach'
+                decision = 'Migrate MCP server to TypeScript'
+                status   = 'accepted'
+            }
+        }
+    }
+
+    $adr2Id = $null
+    if ($adr2CreateResponse -and $adr2CreateResponse.result) {
+        $adr2Text = $adr2CreateResponse.result.content[0].text
+        $adr2Obj = $adr2Text | ConvertFrom-Json
+        $adr2Id = $adr2Obj.adr_id
+    }
+
+    # Mark first ADR as superseded by second
+    if ($adrId -and $adr2Id) {
+        $requestId++
+        $adrSuperResponse = Send-McpRequest -Process $mcpProcess -Request @{
+            jsonrpc = '2.0'
+            id      = $requestId
+            method  = 'tools/call'
+            params  = @{
+                name      = 'adr_mark_superseded'
+                arguments = @{
+                    adr_id        = $adrId
+                    superseded_by = $adr2Id
+                }
+            }
+        }
+
+        Assert-True -Name "adr_mark_superseded responds" `
+            -Condition ($null -ne $adrSuperResponse) `
+            -Message "No response"
+
+        if ($adrSuperResponse -and $adrSuperResponse.result) {
+            $adrSuperText = $adrSuperResponse.result.content[0].text
+            $adrSuperObj = $adrSuperText | ConvertFrom-Json
+            Assert-True -Name "adr_mark_superseded succeeds" `
+                -Condition ($adrSuperObj.success -eq $true) `
+                -Message "Failed: $adrSuperText"
+        }
+
+        # Verify file moved to superseded/
+        $supersededDir = Join-Path $botDir "workspace\adrs\superseded"
+        $supersededFiles = Get-ChildItem -Path $supersededDir -Filter "*.md" -ErrorAction SilentlyContinue
+        Assert-True -Name "ADR file moved to superseded/" `
+            -Condition ($supersededFiles.Count -gt 0) `
+            -Message "No .md files found in superseded/"
+    }
+
+    # Create a third ADR to test deprecated
+    $requestId++
+    $adr3CreateResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        jsonrpc = '2.0'
+        id      = $requestId
+        method  = 'tools/call'
+        params  = @{
+            name      = 'adr_create'
+            arguments = @{
+                title    = 'Use Redis for Caching'
+                context  = 'Need caching layer for performance'
+                decision = 'Use Redis as the caching backend'
+                status   = 'accepted'
+            }
+        }
+    }
+
+    $adr3Id = $null
+    if ($adr3CreateResponse -and $adr3CreateResponse.result) {
+        $adr3Text = $adr3CreateResponse.result.content[0].text
+        $adr3Obj = $adr3Text | ConvertFrom-Json
+        $adr3Id = $adr3Obj.adr_id
+    }
+
+    # Mark deprecated
+    if ($adr3Id) {
+        $requestId++
+        $adrDepResponse = Send-McpRequest -Process $mcpProcess -Request @{
+            jsonrpc = '2.0'
+            id      = $requestId
+            method  = 'tools/call'
+            params  = @{
+                name      = 'adr_mark_deprecated'
+                arguments = @{
+                    adr_id = $adr3Id
+                    reason = 'Caching no longer needed after architecture simplification'
+                }
+            }
+        }
+
+        Assert-True -Name "adr_mark_deprecated responds" `
+            -Condition ($null -ne $adrDepResponse) `
+            -Message "No response"
+
+        if ($adrDepResponse -and $adrDepResponse.result) {
+            $adrDepText = $adrDepResponse.result.content[0].text
+            $adrDepObj = $adrDepText | ConvertFrom-Json
+            Assert-True -Name "adr_mark_deprecated succeeds" `
+                -Condition ($adrDepObj.success -eq $true) `
+                -Message "Failed: $adrDepText"
+        }
+
+        # Verify file moved to deprecated/
+        $deprecatedDir = Join-Path $botDir "workspace\adrs\deprecated"
+        $deprecatedFiles = Get-ChildItem -Path $deprecatedDir -Filter "*.md" -ErrorAction SilentlyContinue
+        Assert-True -Name "ADR file moved to deprecated/" `
+            -Condition ($deprecatedFiles.Count -gt 0) `
+            -Message "No .md files found in deprecated/"
+    }
+
+    # List with status filter
+    $requestId++
+    $adrListFilteredResponse = Send-McpRequest -Process $mcpProcess -Request @{
+        jsonrpc = '2.0'
+        id      = $requestId
+        method  = 'tools/call'
+        params  = @{
+            name      = 'adr_list'
+            arguments = @{ status = 'accepted' }
+        }
+    }
+
+    Assert-True -Name "adr_list with status filter responds" `
+        -Condition ($null -ne $adrListFilteredResponse) `
+        -Message "No response"
+
+    if ($adrListFilteredResponse -and $adrListFilteredResponse.result) {
+        $adrFilterText = $adrListFilteredResponse.result.content[0].text
+        $adrFilterObj = $adrFilterText | ConvertFrom-Json
+        Assert-True -Name "adr_list filters by status" `
+            -Condition ($adrFilterObj.success -eq $true) `
+            -Message "Failed: $adrFilterText"
     }
 
     Write-Host ""
