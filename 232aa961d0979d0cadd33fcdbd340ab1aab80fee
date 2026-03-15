@@ -1,0 +1,27 @@
+profiles/default/systems/mcp/tools/adr-mark-accepted/script.ps1
+  26b9b49eb6dfb76e 32,35-43
+profiles/default/systems/mcp/tools/adr-mark-superseded/script.ps1
+  26b9b49eb6dfb76e 29-40
+profiles/default/systems/mcp/tools/adr-mark-deprecated/script.ps1
+  26b9b49eb6dfb76e 27-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "232aa961d0979d0cadd33fcdbd340ab1aab80fee",
+  "prompts": {
+    "26b9b49eb6dfb76e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f6df39b1-9080-40e0-8a0a-0a501a420474",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Can Bilgin <can.bilgin@authoritypartners.com>",
+      "messages": [],
+      "total_additions": 168,
+      "total_deletions": 143,
+      "accepted_lines": 58,
+      "overriden_lines": 0
+    }
+  }
+}
